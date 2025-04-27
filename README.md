@@ -1,2 +1,0 @@
-# Gruppe-M
-DISYS Project
