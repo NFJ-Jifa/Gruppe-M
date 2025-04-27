@@ -6,9 +6,16 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
+        <module name="usage-service" />
         <module name="energy-rest-api" />
+        <module name="user-service" />
+        <module name="percentage-service" />
+        <module name="producer-service" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="energy-gui" target="22" />
+    </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">

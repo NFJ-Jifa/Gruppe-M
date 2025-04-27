@@ -8,11 +8,11 @@
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <modules>
+        <module>energy-gui</module>
         <module>energy-rest-api</module>
-        <module>producer-service</module>
-        <module>user-service</module>
-        <module>usage-service</module>
         <module>percentage-service</module>
-        <module>gui</module>
+        <module>producer-service</module>
+        <module>usage-service</module>
+        <module>user-service</module>
     </modules>
 </project>
