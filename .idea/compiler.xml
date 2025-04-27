@@ -11,11 +11,9 @@
         <module name="user-service" />
         <module name="percentage-service" />
         <module name="producer-service" />
+        <module name="energy-gui" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel>
-      <module name="energy-gui" target="22" />
-    </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
