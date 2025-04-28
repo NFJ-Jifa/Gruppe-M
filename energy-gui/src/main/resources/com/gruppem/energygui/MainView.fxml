@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml" fx:controller="com.gruppem.energygui.Controller">
+
+    <top>
+        <VBox spacing="10">
+            <HBox spacing="10">
+                <Button fx:id="getCurrentButton" text="Get Current Energy Data" />
+                <Button fx:id="getHistoricalButton" text="Get Historical Energy Data" />
+            </HBox>
+            <HBox spacing="10">
+                <Label text="Start Time (yyyy-MM-ddTHH:mm:ss):" />
+                <TextField fx:id="startTimeField" promptText="2025-01-10T14:00:00" />
+                <Label text="End Time (yyyy-MM-ddTHH:mm:ss):" />
+                <TextField fx:id="endTimeField" promptText="2025-01-10T15:00:00" />
+            </HBox>
+        </VBox>
+    </top>
+
+    <center>
+        <TextArea fx:id="outputArea" prefRowCount="20" prefColumnCount="60" wrapText="true" />
+    </center>
+
+    <bottom>
+        <Label fx:id="statusLabel" text="Status: Ready" />
+    </bottom>
+
+</BorderPane>
