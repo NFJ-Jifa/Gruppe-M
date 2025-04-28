@@ -5,16 +5,16 @@
          http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
-		<groupId>com.gruppeM</groupId>
-		<artifactId>energy-communities</artifactId>
-		<version>1.0.0-SNAPSHOT</version>
-		<relativePath/>    <!-- points to my root pom.xml -->
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>3.4.5</version>
+		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.gruppeM</groupId>
 	<artifactId>energy-rest-api</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>energy-rest-api</name>
-	<description>Energy REST API</description>
+	<description>Energy REST API for milestone</description>
 	<url/>
 	<licenses>
 		<license/>

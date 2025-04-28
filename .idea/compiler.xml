@@ -11,14 +11,14 @@
         <module name="energy-rest-api" />
         <module name="user-service" />
         <module name="percentage-service" />
-        <module name="producer-service" />
         <module name="energy-gui" />
+        <module name="producer-service" />
       </profile>
     </annotationProcessing>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
-      <module name="energy-gui" options="-parameters" />
+      <module name="energy-gui" options="" />
       <module name="energy-rest-api" options="-parameters" />
       <module name="percentage-service" options="-parameters" />
       <module name="producer-service" options="-parameters" />
