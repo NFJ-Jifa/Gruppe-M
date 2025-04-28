@@ -1,45 +1,72 @@
 package com.gruppem.energygui;
 
-import javafx.geometry.Insets;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextArea;
-import javafx.scene.layout.VBox;
+import javafx.fxml.FXML;
+import javafx.scene.control.*;
+import javafx.application.Platform;
 
 public class Controller {
 
-    private TextArea textArea = new TextArea();
+    @FXML
+    private Button getCurrentButton;
 
-    public VBox createUI() {
-        VBox layout = new VBox(10);
-        layout.setPadding(new Insets(20));
+    @FXML
+    private Button getHistoricalButton;
 
-        Button btnCurrent = new Button("Get Current Usage");
-        Button btnHistorical = new Button("Get Historical Usage");
+    @FXML
+    private TextField startTimeField;
 
-        btnCurrent.setOnAction(e -> fetchCurrentUsage());
-        btnHistorical.setOnAction(e -> fetchHistoricalUsage());
+    @FXML
+    private TextField endTimeField;
 
-        layout.getChildren().addAll(new Label("Energy Community Dashboard:"), btnCurrent, btnHistorical, textArea);
+    @FXML
+    private TextArea outputArea;
 
-        return layout;
+    @FXML
+    private Label statusLabel;
+
+    private final RestClient restClient = new RestClient();  // клиент для отправки HTTP запросов
+
+    @FXML
+    private void initialize() {
+        getCurrentButton.setOnAction(event -> fetchCurrentEnergyData());
+        getHistoricalButton.setOnAction(event -> fetchHistoricalEnergyData());
     }
 
-    private void fetchCurrentUsage() {
-        try {
-            String response = RestClient.getCurrentEnergyData();
-            textArea.setText(response);
-        } catch (Exception e) {
-            textArea.setText("Error fetching current usage:\n" + e.getMessage());
-        }
+    private void fetchCurrentEnergyData() {
+        new Thread(() -> {
+            try {
+                updateStatus("Fetching current energy data...");
+                String response = restClient.getCurrentEnergyData();
+                updateOutput(response);
+                updateStatus("Current energy data fetched successfully.");
+            } catch (Exception e) {
+                updateStatus("Error fetching current energy data.");
+                e.printStackTrace();
+            }
+        }).start();
     }
 
-    private void fetchHistoricalUsage() {
-        try {
-            String response = RestClient.getHistoricalEnergyData("2025-04-26T00:00:00", "2025-04-27T00:00:00");
-            textArea.setText(response);
-        } catch (Exception e) {
-            textArea.setText("Error fetching historical usage:\n" + e.getMessage());
-        }
+    private void fetchHistoricalEnergyData() {
+        new Thread(() -> {
+            try {
+                String startTime = startTimeField.getText();
+                String endTime = endTimeField.getText();
+                updateStatus("Fetching historical energy data...");
+                String response = restClient.getHistoricalEnergyData(startTime, endTime);
+                updateOutput(response);
+                updateStatus("Historical energy data fetched successfully.");
+            } catch (Exception e) {
+                updateStatus("Error fetching historical energy data.");
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+    private void updateStatus(String message) {
+        Platform.runLater(() -> statusLabel.setText("Status: " + message));
+    }
+
+    private void updateOutput(String message) {
+        Platform.runLater(() -> outputArea.setText(message));
     }
 }
