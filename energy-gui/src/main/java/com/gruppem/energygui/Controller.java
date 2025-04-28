@@ -2,7 +2,7 @@ package com.gruppem.energygui;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
-import javafx.application.Platform;
+import org.json.JSONObject;  // Добавим библиотеку org.json
 
 public class Controller {
 
@@ -24,49 +24,51 @@ public class Controller {
     @FXML
     private Label statusLabel;
 
-    private final RestClient restClient = new RestClient();  // клиент для отправки HTTP запросов
+    private final RestClient restClient = new RestClient();
 
     @FXML
     private void initialize() {
-        getCurrentButton.setOnAction(event -> fetchCurrentEnergyData());
-        getHistoricalButton.setOnAction(event -> fetchHistoricalEnergyData());
+        getCurrentButton.setOnAction(event -> handleGetCurrentData());
+        getHistoricalButton.setOnAction(event -> handleGetHistoricalData());
     }
 
-    private void fetchCurrentEnergyData() {
-        new Thread(() -> {
-            try {
-                updateStatus("Fetching current energy data...");
-                String response = restClient.getCurrentEnergyData();
-                updateOutput(response);
-                updateStatus("Current energy data fetched successfully.");
-            } catch (Exception e) {
-                updateStatus("Error fetching current energy data.");
-                e.printStackTrace();
-            }
-        }).start();
+    private void handleGetCurrentData() {
+        try {
+            statusLabel.setText("Status: Fetching current data...");
+            String response = restClient.getCurrentEnergyData();
+
+            // Парсим JSON
+            JSONObject json = new JSONObject(response);
+            String formatted = String.format(
+                    "Hour: %s\nCommunity Depleted: %.2f\nGrid Portion: %.2f",
+                    json.getString("hour"),
+                    json.getDouble("communityDepleted"),
+                    json.getDouble("gridPortion")
+            );
+
+            outputArea.setText(formatted);
+            statusLabel.setText("Status: Current data loaded");
+        } catch (Exception e) {
+            outputArea.setText("");
+            statusLabel.setText("Status: Error fetching current energy data.");
+            e.printStackTrace();
+        }
     }
 
-    private void fetchHistoricalEnergyData() {
-        new Thread(() -> {
-            try {
-                String startTime = startTimeField.getText();
-                String endTime = endTimeField.getText();
-                updateStatus("Fetching historical energy data...");
-                String response = restClient.getHistoricalEnergyData(startTime, endTime);
-                updateOutput(response);
-                updateStatus("Historical energy data fetched successfully.");
-            } catch (Exception e) {
-                updateStatus("Error fetching historical energy data.");
-                e.printStackTrace();
-            }
-        }).start();
-    }
+    private void handleGetHistoricalData() {
+        try {
+            statusLabel.setText("Status: Fetching historical data...");
+            String start = startTimeField.getText();
+            String end = endTimeField.getText();
+            String response = restClient.getHistoricalEnergyData(start, end);
 
-    private void updateStatus(String message) {
-        Platform.runLater(() -> statusLabel.setText("Status: " + message));
-    }
-
-    private void updateOutput(String message) {
-        Platform.runLater(() -> outputArea.setText(message));
+            // Пока просто выводим как есть (если хочешь, тоже можем оформить красиво)
+            outputArea.setText(response);
+            statusLabel.setText("Status: Historical data loaded");
+        } catch (Exception e) {
+            outputArea.setText("");
+            statusLabel.setText("Status: Error fetching historical energy data.");
+            e.printStackTrace();
+        }
     }
 }
