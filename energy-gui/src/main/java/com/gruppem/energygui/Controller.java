@@ -2,7 +2,11 @@ package com.gruppem.energygui;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
-import org.json.JSONObject;  // Добавим библиотеку org.json
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class Controller {
 
@@ -28,6 +32,13 @@ public class Controller {
 
     @FXML
     private void initialize() {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime oneHourLater = now.plusHours(1);
+
+        startTimeField.setText(now.format(formatter));
+        endTimeField.setText(oneHourLater.format(formatter));
+
         getCurrentButton.setOnAction(event -> handleGetCurrentData());
         getHistoricalButton.setOnAction(event -> handleGetHistoricalData());
     }
@@ -37,10 +48,9 @@ public class Controller {
             statusLabel.setText("Status: Fetching current data...");
             String response = restClient.getCurrentEnergyData();
 
-            // Парсим JSON
             JSONObject json = new JSONObject(response);
             String formatted = String.format(
-                    "Hour: %s\nCommunity Depleted: %.2f\nGrid Portion: %.2f",
+                    "Hour: %s\nCommunity Depleted: %.2f%%\nGrid Portion: %.2f%%",
                     json.getString("hour"),
                     json.getDouble("communityDepleted"),
                     json.getDouble("gridPortion")
@@ -62,8 +72,20 @@ public class Controller {
             String end = endTimeField.getText();
             String response = restClient.getHistoricalEnergyData(start, end);
 
-            // Пока просто выводим как есть (если хочешь, тоже можем оформить красиво)
-            outputArea.setText(response);
+            JSONArray jsonArray = new JSONArray(response);
+            StringBuilder formatted = new StringBuilder();
+
+            for (int i = 0; i < jsonArray.length(); i++) {
+                JSONObject entry = jsonArray.getJSONObject(i);
+                formatted.append(String.format(
+                        "Hour: %s\nCommunity Depleted: %.2f%%\nGrid Portion: %.2f%%\n\n",
+                        entry.getString("hour"),
+                        entry.getDouble("communityDepleted"),
+                        entry.getDouble("gridPortion")
+                ));
+            }
+
+            outputArea.setText(formatted.toString());
             statusLabel.setText("Status: Historical data loaded");
         } catch (Exception e) {
             outputArea.setText("");
