@@ -6,6 +6,9 @@
       <list>
         <option value="$PROJECT_DIR$/Code/energy-rest-api/pom.xml" />
         <option value="$PROJECT_DIR$/pom.xml" />
+        <option value="$PROJECT_DIR$/usage-service/pom.xml" />
+        <option value="$PROJECT_DIR$/user-service/pom.xml" />
+        <option value="$PROJECT_DIR$/percentage-service/pom.xml" />
       </list>
     </option>
   </component>

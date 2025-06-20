@@ -2,30 +2,53 @@
 
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
 
 <BorderPane xmlns:fx="http://javafx.com/fxml" fx:controller="com.gruppem.energygui.Controller">
 
     <top>
         <VBox spacing="10">
-            <HBox spacing="10">
-                <Button fx:id="getCurrentButton" text="Get Current Energy Data" />
-                <Button fx:id="getHistoricalButton" text="Get Historical Energy Data" />
+            <padding>
+                <Insets top="10" right="10" bottom="10" left="10"/>
+            </padding>
+
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <VBox spacing="5">
+                    <Label text="Start Date:"/>
+                    <DatePicker fx:id="startDatePicker"/>
+                    <TextField fx:id="startTimeField" promptText="HH:mm:ss"/>
+                </VBox>
+                <VBox spacing="5">
+                    <Label text="End Date:"/>
+                    <DatePicker fx:id="endDatePicker"/>
+                    <TextField fx:id="endTimeField" promptText="HH:mm:ss"/>
+                </VBox>
+                <VBox spacing="5">
+                    <Button fx:id="getCurrentButton" text="Get Current Data"/>
+                    <Button fx:id="getHistoricalButton" text="Get Historical Data"/>
+                </VBox>
             </HBox>
-            <HBox spacing="10">
-                <Label text="Start Time (yyyy-MM-ddTHH:mm:ss):" />
-                <TextField fx:id="startTimeField" promptText="2025-01-10T14:00:00" />
-                <Label text="End Time (yyyy-MM-ddTHH:mm:ss):" />
-                <TextField fx:id="endTimeField" promptText="2025-01-10T15:00:00" />
-            </HBox>
+
+            <TableView fx:id="historyTable" prefHeight="300">
+                <columns>
+                    <TableColumn fx:id="hourColumn" text="Hour" prefWidth="200"/>
+                    <TableColumn fx:id="communityDepletedColumn" text="Community Depleted" prefWidth="200"/>
+                    <TableColumn fx:id="gridPortionColumn" text="Grid Portion" prefWidth="200"/>
+                </columns>
+            </TableView>
         </VBox>
     </top>
 
     <center>
-        <TextArea fx:id="outputArea" prefRowCount="20" prefColumnCount="60" wrapText="true" />
+        <TextArea fx:id="outputArea" prefRowCount="20" prefColumnCount="60" wrapText="true"/>
     </center>
 
     <bottom>
-        <Label fx:id="statusLabel" text="Status: Ready" />
+        <Label fx:id="statusLabel" text="Status: Ready">
+            <padding>
+                <Insets top="5" bottom="5" left="10" right="10"/>
+            </padding>
+        </Label>
     </bottom>
 
 </BorderPane>

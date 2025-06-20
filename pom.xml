@@ -2,29 +2,26 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
                              http://maven.apache.org/xsd/maven-4.0.0.xsd">
-<modelVersion>4.0.0</modelVersion>
+    <modelVersion>4.0.0</modelVersion>
 
-<!-- 1) Inherit Spring Boot's BOM and plugin defaults -->
-<parent>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.4.5</version>
-    <relativePath/>
-</parent>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.4.5</version>
+        <relativePath/>
+    </parent>
 
-<groupId>com.gruppeM</groupId>
-<artifactId>energy-communities</artifactId>
-<version>1.0.0-SNAPSHOT</version>
-<packaging>pom</packaging>
+    <groupId>com.gruppeM</groupId>
+    <artifactId>energy-communities</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
 
-<modules>
-    <module>energy-gui</module>
-    <module>energy-rest-api</module>
-    <module>percentage-service</module>
-    <module>producer-service</module>
-    <module>usage-service</module>
-    <module>user-service</module>
-</modules>
+    <modules>
+        <module>energy-gui</module>
+        <module>energy-rest-api</module>
+        <module>percentage-service</module>
+        <module>producer-service</module>
+        <module>usage-service</module>
+        <module>user-service</module>
+    </modules>
 </project>
-
-

@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: user-service
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:rabbitmq}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:guest}
+    password: ${SPRING_RABBITMQ_PASSWORD:guest}
+
+energy:
+  queue: energy.messages
+  association: COMMUNITY
+  type: USER
+
+server:
+  port: 8080
