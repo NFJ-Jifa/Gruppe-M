@@ -4,7 +4,6 @@ module com.gruppem.energygui {
     requires java.net.http;
     requires org.json;
 
-
-    opens com.gruppem.energygui to javafx.fxml;
     exports com.gruppem.energygui;
+    opens com.gruppem.energygui to javafx.fxml;
 }

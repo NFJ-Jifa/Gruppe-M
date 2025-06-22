@@ -1,5 +1,6 @@
 package com.gruppeM.producer;
 
+import com.gruppeM.producer.EnergyMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,7 +41,8 @@ public class ProducerApplication {
 
     @Scheduled(fixedDelayString = "#{T(java.util.concurrent.ThreadLocalRandom).current().nextInt(1000,5000)}")
     public void produce() {
-        double kwh = 5 + ThreadLocalRandom.current().nextDouble() * 5;
+        // Reduced production to 0–2 kWh to allow grid usage
+        double kwh = ThreadLocalRandom.current().nextDouble() * 2.0;
         EnergyMessage msg = new EnergyMessage(type, association, kwh, Instant.now());
         rabbit.convertAndSend(queue, msg);
         log.info("Sent to {}: {}", queue, msg);

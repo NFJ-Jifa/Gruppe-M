@@ -26,9 +26,12 @@ public class UserApplication {
     private String type;
 
     private final RabbitTemplate rabbitTemplate;
+    private final String queue;
 
-    public UserApplication(RabbitTemplate rabbitTemplate) {
+    public UserApplication(RabbitTemplate rabbitTemplate,
+                           @Value("${energy.queue}") String queue) {
         this.rabbitTemplate = rabbitTemplate;
+        this.queue = queue;
     }
 
     public static void main(String[] args) {
@@ -38,19 +41,15 @@ public class UserApplication {
 
     @Scheduled(fixedDelayString = "#{T(java.util.concurrent.ThreadLocalRandom).current().nextInt(1000,5000)}")
     public void produceUsage() {
-        double base = new Random().nextDouble() * 2;
+        // Base consumption 0–2 kWh, peaks add another 1–3 kWh
+        double base = new Random().nextDouble() * 2.0;
         LocalTime now = LocalTime.now();
         if ((now.isAfter(LocalTime.of(6, 59)) && now.isBefore(LocalTime.of(9, 1))) ||
                 (now.isAfter(LocalTime.of(17, 59)) && now.isBefore(LocalTime.of(20, 1)))) {
-            base += 1 + new Random().nextDouble() * 2;
+            base += 1.0 + new Random().nextDouble() * 3.0;
         }
         EnergyMessage msg = new EnergyMessage(type, association, base, Instant.now());
-        rabbitTemplate.convertAndSend(energyQueueName(), msg);
-        log.info("Sent message: {}", msg);
-    }
-
-    // Внедряем через RabbitConfiguration или @Value("${energy.queue}")
-    private String energyQueueName() {
-        return rabbitTemplate.getRoutingKey(); // или хранить в @Value
+        rabbitTemplate.convertAndSend(queue, msg);
+        log.info("Sent to {}: {}", queue, msg);
     }
 }

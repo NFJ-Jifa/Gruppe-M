@@ -1,47 +1,53 @@
 package com.gruppeM.energy_rest_api.controller;
 
 import com.gruppeM.energy_rest_api.model.EnergyData;
-import org.junit.jupiter.api.BeforeEach;
+import com.gruppeM.energy_rest_api.repository.HourlyUsageRepository;
+import com.gruppeM.energy_rest_api.service.EnergyService;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
-import static org.mockito.BDDMockito.*;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
-import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.any;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(MockitoExtension.class)
+@WebMvcTest(EnergyController.class)
 class EnergyControllerTest {
 
+    @Autowired
     private MockMvc mockMvc;
 
-    @Mock
-    private com.gruppeM.energy_rest_api.service.EnergyService energyService;
+    @MockBean
+    private EnergyService energyService;
 
-    @Mock
+    @MockBean
     private RabbitTemplate rabbitTemplate;
 
-    @BeforeEach
-    void setUp() {
-        // передаем «energy.input» напрямую в конструктор
-        var controller = new EnergyController(energyService, rabbitTemplate, "energy.input");
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
-    }
+    // Мок для репозитория нужен, чтобы контекст собирался
+    @MockBean
+    private HourlyUsageRepository hourlyRepo;
+
+    @Value("${energy.input-queue:energy.input}")
+    private String inputQueue;
 
     @Test
     void testGetCurrent() throws Exception {
-        var now = LocalDateTime.of(2025,6,19,12,0);
+        // DataService возвращает EnergyData с LocalDateTime внутри
+        LocalDateTime nowLdt = LocalDateTime.of(2025, 6, 19, 12, 0);
         given(energyService.getCurrentEnergyStatus())
-                .willReturn(new EnergyData(now, 100.0, 5.5));
+                .willReturn(new EnergyData(nowLdt, 100.0, 5.5));
 
         mockMvc.perform(get("/energy/current"))
                 .andExpect(status().isOk())
@@ -51,13 +57,19 @@ class EnergyControllerTest {
 
     @Test
     void testGetHistorical() throws Exception {
-        var start = LocalDateTime.of(2025,6,19,0,0);
-        var end   = LocalDateTime.of(2025,6,19,3,0);
+        // Параметры эндпойнта теперь Instant (с Z)
+        Instant start = Instant.parse("2025-06-19T00:00:00Z");
+        Instant end   = Instant.parse("2025-06-19T03:00:00Z");
+
+        // Сервис оперирует LocalDateTime, поэтому на входе он конвертирует:
+        LocalDateTime a = LocalDateTime.ofInstant(start, ZoneOffset.UTC).plusHours(1);
+        LocalDateTime b = LocalDateTime.ofInstant(start, ZoneOffset.UTC).plusHours(2);
         var data = List.of(
-                new EnergyData(start.plusHours(1), 95.0, 3.2),
-                new EnergyData(start.plusHours(2), 97.5, 4.1)
+                new EnergyData(a, 95.0, 3.2),
+                new EnergyData(b, 97.5, 4.1)
         );
-        given(energyService.getHistoricalEnergyData(start, end)).willReturn(data);
+        given(energyService.getHistoricalEnergyData(start, end))
+                .willReturn(data);
 
         mockMvc.perform(get("/energy/historical")
                         .param("start", start.toString())
@@ -78,14 +90,14 @@ class EnergyControllerTest {
             """;
 
         mockMvc.perform(post("/energy/publish")
-                        .contentType(APPLICATION_JSON)
+                        .contentType("application/json")
                         .content(body))
                 .andExpect(status().isOk());
 
-        // убедимся, что rabbitTemplate.convertAndSend вызвано с нужными аргументами
+        // Проверяем, что в RabbitTemplate передалась наша очередь и объект EnergyData
         verify(rabbitTemplate).convertAndSend(
-                eq("energy.input"),
-                any(com.gruppeM.energy_rest_api.model.EnergyData.class)
+                eq(inputQueue),
+                any(EnergyData.class)
         );
     }
 }

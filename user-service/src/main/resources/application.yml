@@ -8,7 +8,7 @@ spring:
     password: ${SPRING_RABBITMQ_PASSWORD:guest}
 
 energy:
-  queue: energy.messages
+  queue: energy.input
   association: COMMUNITY
   type: USER
 

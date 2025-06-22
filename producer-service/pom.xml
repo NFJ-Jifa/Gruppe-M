@@ -12,8 +12,6 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <groupId>com.gruppeM</groupId>
-
     <artifactId>producer-service</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>producer-service</name>

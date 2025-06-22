@@ -9,10 +9,10 @@ import java.time.Instant;
 @Getter @Setter @NoArgsConstructor
 public class PercentageData {
     private Instant hourKey;
-    private double gridPercentage;
+    private double percentage;
 
-    public PercentageData(Instant hourKey, double gridPercentage) {
-        this.hourKey = hourKey;
-        this.gridPercentage = gridPercentage;
+    public PercentageData(Instant hourKey, double percentage) {
+        this.hourKey    = hourKey;
+        this.percentage = percentage;
     }
 }

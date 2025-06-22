@@ -1,4 +1,3 @@
-
 package com.gruppem.percentageservice.model;
 
 import java.time.Instant;
