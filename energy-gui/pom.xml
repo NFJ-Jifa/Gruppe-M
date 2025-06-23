@@ -21,6 +21,34 @@
             <version>20231013</version>
         </dependency>
 
+
+
+
+        <!-- TestFX Core -->
+        <dependency>
+            <groupId>org.testfx</groupId>
+            <artifactId>testfx-core</artifactId>
+            <version>4.0.16-alpha</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- TestFX JUnit5 -->
+        <dependency>
+            <groupId>org.testfx</groupId>
+            <artifactId>testfx-junit5</artifactId>
+            <version>4.0.16-alpha</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- OkHttp MockWebServer -->
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>mockwebserver</artifactId>
+            <version>4.11.0</version>
+            <scope>test</scope>
+        </dependency>
+
+
+
+
         <!-- JavaFX -->
         <dependency>
             <groupId>org.openjfx</groupId>
@@ -57,6 +85,12 @@
             <version>6.2.6</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <version>5.12.2</version>
+            <scope>test</scope>
+        </dependency>
 
 
     </dependencies>
@@ -73,6 +107,25 @@
                     <target>${java.version}</target>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <argLine>
+                        --add-opens=javafx.graphics/com.sun.javafx.application=ALL-UNNAMED
+                    </argLine>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>--add-opens=javafx.graphics/com.sun.javafx.application=ALL-UNNAMED</argLine>
+                </configuration>
+            </plugin>
+
+            <!-- ваша другая конфигурация плагинов -->
+
             <plugin>
                 <groupId>org.openjfx</groupId>
                 <artifactId>javafx-maven-plugin</artifactId>

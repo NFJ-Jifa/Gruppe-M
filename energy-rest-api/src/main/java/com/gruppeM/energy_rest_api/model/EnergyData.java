@@ -1,31 +1,42 @@
 package com.gruppeM.energy_rest_api.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class EnergyData {
-    private LocalDateTime hour;
+
+    /**
+     * Поле hour теперь хранит Instant напрямую.
+     * Форматируем его в ISO-строку с суффиксом "Z".
+     */
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    private Instant hour;
     private double communityDepleted;
     private double gridPortion;
 
-    // нужен для Jackson
+    // Для Jackson
     public EnergyData() {}
 
     @JsonCreator
-    public EnergyData(@JsonProperty("hour") LocalDateTime hour,
-                      @JsonProperty("communityDepleted") double communityDepleted,
-                      @JsonProperty("gridPortion") double gridPortion) {
+    public EnergyData(
+            @JsonProperty("hour") Instant hour,
+            @JsonProperty("communityDepleted") double communityDepleted,
+            @JsonProperty("gridPortion") double gridPortion
+    ) {
         this.hour = hour;
         this.communityDepleted = communityDepleted;
         this.gridPortion = gridPortion;
     }
 
-    public LocalDateTime getHour() {
+    public Instant getHour() {
         return hour;
     }
-    public void setHour(LocalDateTime hour) {
+    public void setHour(Instant hour) {
         this.hour = hour;
     }
 

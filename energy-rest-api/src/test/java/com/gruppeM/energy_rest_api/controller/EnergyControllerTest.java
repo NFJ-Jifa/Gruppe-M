@@ -1,69 +1,84 @@
 package com.gruppeM.energy_rest_api.controller;
 
 import com.gruppeM.energy_rest_api.model.EnergyData;
+import com.gruppeM.energy_rest_api.model.HourlyUsage;
 import com.gruppeM.energy_rest_api.repository.HourlyUsageRepository;
 import com.gruppeM.energy_rest_api.service.EnergyService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.mockito.ArgumentCaptor;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
 
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.any;
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.BDDMockito.*;
+import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(EnergyController.class)
 class EnergyControllerTest {
 
-    @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    // моки для зависимостей
     private EnergyService energyService;
-
-    @MockBean
-    private RabbitTemplate rabbitTemplate;
-
-    // Мок для репозитория нужен, чтобы контекст собирался
-    @MockBean
+    private org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate;
     private HourlyUsageRepository hourlyRepo;
 
-    @Value("${energy.input-queue:energy.input}")
-    private String inputQueue;
+    // имя очереди
+    private final String inputQueue = "energy.input";
+
+    @BeforeEach
+    void setUp() {
+        energyService  = mock(EnergyService.class);
+        rabbitTemplate = mock(org.springframework.amqp.rabbit.core.RabbitTemplate.class);
+        hourlyRepo     = mock(HourlyUsageRepository.class);
+
+        // создаём контроллер вручную, прокидывая зависимости
+        var controller = new com.gruppeM.energy_rest_api.controller.EnergyController(
+                energyService,
+                rabbitTemplate,
+                hourlyRepo,
+                inputQueue
+        );
+
+        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+    }
 
     @Test
-    void testGetCurrent() throws Exception {
-        // DataService возвращает EnergyData с LocalDateTime внутри
-        LocalDateTime nowLdt = LocalDateTime.of(2025, 6, 19, 12, 0);
+    void getCurrent_ShouldReturnJson() throws Exception {
+        Instant now = Instant.parse("2025-06-19T12:00:00Z");
         given(energyService.getCurrentEnergyStatus())
-                .willReturn(new EnergyData(nowLdt, 100.0, 5.5));
+                .willReturn(new EnergyData(now, 100.0, 5.5));
 
         mockMvc.perform(get("/energy/current"))
                 .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.communityDepleted").value(100.0))
                 .andExpect(jsonPath("$.gridPortion").value(5.5));
     }
 
     @Test
-    void testGetHistorical() throws Exception {
-        // Параметры эндпойнта теперь Instant (с Z)
+    void getHistorical_ShouldReturnListOrNoContent() throws Exception {
         Instant start = Instant.parse("2025-06-19T00:00:00Z");
         Instant end   = Instant.parse("2025-06-19T03:00:00Z");
 
-        // Сервис оперирует LocalDateTime, поэтому на входе он конвертирует:
-        LocalDateTime a = LocalDateTime.ofInstant(start, ZoneOffset.UTC).plusHours(1);
-        LocalDateTime b = LocalDateTime.ofInstant(start, ZoneOffset.UTC).plusHours(2);
+        // пустой список → 204
+        given(energyService.getHistoricalEnergyData(start, end))
+                .willReturn(List.of());
+
+        mockMvc.perform(get("/energy/historical")
+                        .param("start", start.toString())
+                        .param("end",   end.toString()))
+                .andExpect(status().isNoContent());
+
+        // непустой → 200 + body
+        Instant a = Instant.parse("2025-06-19T01:00:00Z");
+        Instant b = Instant.parse("2025-06-19T02:00:00Z");
         var data = List.of(
                 new EnergyData(a, 95.0, 3.2),
                 new EnergyData(b, 97.5, 4.1)
@@ -80,24 +95,41 @@ class EnergyControllerTest {
     }
 
     @Test
-    void testPublish() throws Exception {
-        String body = """
+    void publish_ShouldSendToRabbit_andReturnOk() throws Exception {
+        String payload = """
             {
-              "hour":"2025-06-19T15:00:00",
+              "hour":"2025-06-19T15:00:00Z",
               "communityDepleted":80.0,
               "gridPortion":10.0
             }
             """;
 
         mockMvc.perform(post("/energy/publish")
-                        .contentType("application/json")
-                        .content(body))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
                 .andExpect(status().isOk());
 
-        // Проверяем, что в RabbitTemplate передалась наша очередь и объект EnergyData
-        verify(rabbitTemplate).convertAndSend(
-                eq(inputQueue),
-                any(EnergyData.class)
-        );
+        // проверяем, что отправка в Rabbit прошла
+        ArgumentCaptor<EnergyData> cap = ArgumentCaptor.forClass(EnergyData.class);
+        verify(rabbitTemplate).convertAndSend(eq(inputQueue), cap.capture());
+
+        EnergyData sent = cap.getValue();
+        assertThat(sent.getHour())
+                .isEqualTo(Instant.parse("2025-06-19T15:00:00Z"));
+        assertThat(sent.getCommunityDepleted()).isEqualTo(80.0);
+        assertThat(sent.getGridPortion()).isEqualTo(10.0);
+    }
+
+    @Test
+    void availableRange_ShouldReturnMinMaxFromRepo() throws Exception {
+        // подготавливаем несколько HourlyUsage
+        var h1 = new HourlyUsage(Instant.parse("2025-06-19T01:00:00Z"));
+        var h2 = new HourlyUsage(Instant.parse("2025-06-19T05:00:00Z"));
+        given(hourlyRepo.findAll()).willReturn(List.of(h1, h2));
+
+        mockMvc.perform(get("/energy/available-range"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.from").value("2025-06-19T01:00:00Z"))
+                .andExpect(jsonPath("$.to"  ).value("2025-06-19T05:00:00Z"));
     }
 }

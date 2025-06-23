@@ -12,6 +12,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import java.time.Instant;
 import java.time.LocalTime;
 import java.util.Random;
+import java.util.function.Supplier;
 
 @SpringBootApplication
 @EnableScheduling
@@ -19,14 +20,19 @@ public class UserApplication {
 
     private static final Logger log = LoggerFactory.getLogger(UserApplication.class);
 
-    @Value("${energy.association}")
-    private String association;
-
+    // Инжектим из application.yml, но дадим возможность переопределить в тестах
     @Value("${energy.type}")
     private String type;
 
+    @Value("${energy.association}")
+    private String association;
+
     private final RabbitTemplate rabbitTemplate;
     private final String queue;
+
+    // Поставщики «текущего времени» — по умолчанию реальные, в тестах будем подменять
+    private Supplier<Instant> nowSupplier  = Instant::now;
+    private Supplier<LocalTime> timeSupplier = LocalTime::now;
 
     public UserApplication(RabbitTemplate rabbitTemplate,
                            @Value("${energy.queue}") String queue) {
@@ -34,21 +40,38 @@ public class UserApplication {
         this.queue = queue;
     }
 
+    // Явные сеттеры для тестов
+    public void setType(String type) {
+        this.type = type;
+    }
+    public void setAssociation(String association) {
+        this.association = association;
+    }
+    public void setNowSupplier(Supplier<Instant> nowSupplier) {
+        this.nowSupplier = nowSupplier;
+    }
+    public void setTimeSupplier(Supplier<LocalTime> timeSupplier) {
+        this.timeSupplier = timeSupplier;
+    }
+
     public static void main(String[] args) {
         SpringApplication.run(UserApplication.class, args);
         log.info("UserService started");
     }
 
-    @Scheduled(fixedDelayString = "#{T(java.util.concurrent.ThreadLocalRandom).current().nextInt(1000,5000)}")
+    @Scheduled(fixedDelayString =
+            "#{T(java.util.concurrent.ThreadLocalRandom).current().nextInt(1000,5000)}")
     public void produceUsage() {
-        // Base consumption 0–2 kWh, peaks add another 1–3 kWh
+        Instant timestamp   = nowSupplier.get();
+        LocalTime currentTime = timeSupplier.get();
+
         double base = new Random().nextDouble() * 2.0;
-        LocalTime now = LocalTime.now();
-        if ((now.isAfter(LocalTime.of(6, 59)) && now.isBefore(LocalTime.of(9, 1))) ||
-                (now.isAfter(LocalTime.of(17, 59)) && now.isBefore(LocalTime.of(20, 1)))) {
+        if ((currentTime.isAfter(LocalTime.of(6, 59))  && currentTime.isBefore(LocalTime.of(9, 1))) ||
+                (currentTime.isAfter(LocalTime.of(17,59)) && currentTime.isBefore(LocalTime.of(20,1)))) {
             base += 1.0 + new Random().nextDouble() * 3.0;
         }
-        EnergyMessage msg = new EnergyMessage(type, association, base, Instant.now());
+
+        EnergyMessage msg = new EnergyMessage(type, association, base, timestamp);
         rabbitTemplate.convertAndSend(queue, msg);
         log.info("Sent to {}: {}", queue, msg);
     }

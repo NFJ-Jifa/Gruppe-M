@@ -24,24 +24,23 @@ public class PercentageProcessor {
 
     @RabbitListener(queues = "${energy.update-queue}")
     public void onUsageUpdate(HourlyUsageMessage msg) {
-        log.info("⟳ percentage-service получил HourlyUsageMessage: hourKey={}, prod={}, used={}, grid={}",
-                msg.getHourKey(), msg.getCommunityProduced(), msg.getCommunityUsed(), msg.getGridUsed());
-
         double prod = msg.getCommunityProduced();
         double used = msg.getCommunityUsed();
         double grid = msg.getGridUsed();
 
-        // Рассчитываем долю grid
-        double gridPortion = (prod + grid) == 0.0
+        double communityDepleted = prod == 0.0
+                ? 100.0
+                : Math.min(100.0, (used / prod) * 100.0);
+
+        double gridPortion = prod == 0.0
                 ? 0.0
                 : (grid / (prod + grid)) * 100.0;
 
-        // Логируем результат до создания DTO
-        log.info("✔ percentage-service публикует PercentageData: hourKey={}, gridPortion={}",
-                msg.getHourKey(), gridPortion);
+        PercentageData out = new PercentageData(msg.getHourKey(), communityDepleted, gridPortion);
 
-        // Создаём DTO и отправляем дальше
-        PercentageData out = new PercentageData(msg.getHourKey(), gridPortion);
+        log.info("✔ percentage-service публикует PercentageData: hourKey={}, communityDepleted={}, gridPortion={}",
+                out.getHourKey(), out.getCommunityDepleted(), out.getGridPortion());
+
         rabbit.convertAndSend(props.getFinalQueue(), out);
     }
 }

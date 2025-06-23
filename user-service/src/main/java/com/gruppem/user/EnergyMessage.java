@@ -26,6 +26,21 @@ public class EnergyMessage {
         this.kwh = kwh;
         this.datetime = datetime;
     }
+    public String getType() {
+        return type;
+    }
+
+    public String getAssociation() {
+        return association;
+    }
+
+    public double getKwh() {
+        return kwh;
+    }
+
+    public Instant getDatetime() {
+        return datetime;
+    }
 
     @Override
     public String toString() {

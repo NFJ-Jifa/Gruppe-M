@@ -7,13 +7,15 @@ import java.time.Instant;
 public class PercentageData {
 
     private Instant hourKey;
-    private double percentage;
+    private double communityDepleted;
+    private double gridPortion;
 
     public PercentageData() {}
 
-    public PercentageData(Instant hourKey, double percentage) {
-        this.hourKey    = hourKey;
-        this.percentage = percentage;
+    public PercentageData(Instant hourKey, double communityDepleted, double gridPortion) {
+        this.hourKey = hourKey;
+        this.communityDepleted = communityDepleted;
+        this.gridPortion = gridPortion;
     }
 
     public Instant getHourKey() {
@@ -24,11 +26,19 @@ public class PercentageData {
         this.hourKey = hourKey;
     }
 
-    public double getPercentage() {
-        return percentage;
+    public double getCommunityDepleted() {
+        return communityDepleted;
     }
 
-    public void setPercentage(double percentage) {
-        this.percentage = percentage;
+    public void setCommunityDepleted(double communityDepleted) {
+        this.communityDepleted = communityDepleted;
+    }
+
+    public double getGridPortion() {
+        return gridPortion;
+    }
+
+    public void setGridPortion(double gridPortion) {
+        this.gridPortion = gridPortion;
     }
 }

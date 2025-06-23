@@ -2,6 +2,7 @@ package com.gruppeM.energy_rest_api.controller;
 
 import com.gruppeM.energy_rest_api.model.EnergyData;
 import com.gruppeM.energy_rest_api.model.HourlyUsage;
+import com.gruppeM.energy_rest_api.repository.HourlyUsageRepository;
 import com.gruppeM.energy_rest_api.service.EnergyService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -19,17 +20,17 @@ public class EnergyController {
 
     private final EnergyService energyService;
     private final org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate;
-    private final String inputQueue;
-    private final com.gruppeM.energy_rest_api.repository.HourlyUsageRepository hourlyRepo;
+    private final HourlyUsageRepository hourlyRepo;
+    private final String publishQueueName;
 
     public EnergyController(EnergyService energyService,
                             org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate,
-                            com.gruppeM.energy_rest_api.repository.HourlyUsageRepository hourlyRepo,
-                            @Value("${energy.input-queue:energy.input}") String inputQueue) {
-        this.energyService   = energyService;
-        this.rabbitTemplate  = rabbitTemplate;
-        this.hourlyRepo      = hourlyRepo;
-        this.inputQueue      = inputQueue;
+                            HourlyUsageRepository hourlyRepo,
+                            @Value("${energy.input-queue:energy.input}") String publishQueueName) {
+        this.energyService    = energyService;
+        this.rabbitTemplate   = rabbitTemplate;
+        this.hourlyRepo       = hourlyRepo;
+        this.publishQueueName = publishQueueName;
     }
 
     /** 1) Текущее */
@@ -54,8 +55,13 @@ public class EnergyController {
     /** 3) Эндпойнт для публикации */
     @PostMapping("/publish")
     public ResponseEntity<Void> publish(@RequestBody EnergyData data) {
-        rabbitTemplate.convertAndSend(inputQueue, data);
+        rabbitTemplate.convertAndSend(publishQueueName, data);
         return ResponseEntity.ok().build();
+    }
+
+    /** Геттер для тестов */
+    public String getPublishQueueName() {
+        return publishQueueName;
     }
 
     /**
@@ -63,8 +69,7 @@ public class EnergyController {
      *    Вернёт JSON {"from":"…Z","to":"…Z"}
      */
     @GetMapping("/available-range")
-    public Map<String, Instant> availableRange() {
-        // проще — из репозитория, но для примера в памяти:
+    public AvailableRange availableRange() {
         Instant min = hourlyRepo.findAll().stream()
                 .map(HourlyUsage::getHourKey)
                 .min(Comparator.naturalOrder())
@@ -73,9 +78,6 @@ public class EnergyController {
                 .map(HourlyUsage::getHourKey)
                 .max(Comparator.naturalOrder())
                 .orElse(Instant.EPOCH);
-        Map<String, Instant> m = new HashMap<>();
-        m.put("from", min);
-        m.put("to",   max);
-        return m;
+        return new AvailableRange(min, max);
     }
 }

@@ -1,69 +1,75 @@
 package com.gruppeM.energy_rest_api.service;
 
-import com.gruppeM.energy_rest_api.model.CurrentPercentage;
 import com.gruppeM.energy_rest_api.model.EnergyData;
 import com.gruppeM.energy_rest_api.model.HourlyUsage;
-import com.gruppeM.energy_rest_api.repository.CurrentPercentageRepository;
 import com.gruppeM.energy_rest_api.repository.HourlyUsageRepository;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 public class EnergyService {
 
-    private final CurrentPercentageRepository currentRepo;
-    private final HourlyUsageRepository hourlyRepo;
-    private final RabbitTemplate rabbitTemplate;
-    private final String inputQueue;
+    private final HourlyUsageRepository repo;
 
-    public EnergyService(CurrentPercentageRepository currentRepo,
-                         HourlyUsageRepository hourlyRepo,
-                         RabbitTemplate rabbitTemplate,
-                         @Value("${energy.input-queue:energy.input}") String inputQueue) {
-        this.currentRepo    = currentRepo;
-        this.hourlyRepo     = hourlyRepo;
-        this.rabbitTemplate = rabbitTemplate;
-        this.inputQueue     = inputQueue;
+    public EnergyService(HourlyUsageRepository repo) {
+        this.repo = repo;
     }
 
-    /** Текущий статус */
+    /**
+     * Возвращаем самый последний час и вычисляем проценты.
+     */
     public EnergyData getCurrentEnergyStatus() {
-        Instant nowHour = Instant.now().truncatedTo(ChronoUnit.HOURS);
-        CurrentPercentage cp = currentRepo.findById(nowHour)
-                .orElse(new CurrentPercentage(nowHour, 0.0, 0.0));
+        Optional<HourlyUsage> opt = repo.findAll()
+                .stream()
+                .max(Comparator.comparing(HourlyUsage::getHourKey));
 
-        // Используем getHourKey() вместо несуществующего getHour()
-        LocalDateTime dt = LocalDateTime.ofInstant(cp.getHourKey(), ZoneOffset.UTC);
-        return new EnergyData(dt, cp.getCommunityDepleted(), cp.getGridPortion());
-    }
-
-    /** Исторические данные по Instant */
-    public List<EnergyData> getHistoricalEnergyData(Instant start, Instant end) {
-        List<HourlyUsage> usages = hourlyRepo.findAllByHourKeyBetween(
-                start.truncatedTo(ChronoUnit.HOURS),
-                end.truncatedTo(ChronoUnit.HOURS)
+        HourlyUsage hu = opt.orElseThrow(() ->
+                new IllegalStateException("Нет данных HourlyUsage")
         );
-        return usages.stream()
-                .map(u -> {
-                    double total     = u.getCommunityProduced() + u.getCommunityUsed() + u.getGridUsed();
-                    double depleted  = total == 0.0 ? 0.0 : u.getCommunityUsed() / total * 100.0;
-                    double gridPct   = total == 0.0 ? 0.0 : u.getGridUsed()     / total * 100.0;
-                    LocalDateTime dt = LocalDateTime.ofInstant(u.getHourKey(), ZoneOffset.UTC);
-                    return new EnergyData(dt, depleted, gridPct);
-                })
-                .collect(Collectors.toList());
+
+        double prod = hu.getCommunityProduced();
+        double used = hu.getCommunityUsed();
+        double grid = hu.getGridUsed();
+
+        double communityDepleted = prod == 0.0
+                ? 100.0
+                : Math.min(100.0, (used / prod) * 100.0);
+        double gridPortion = (prod + grid) == 0.0
+                ? 0.0
+                : (grid / (prod + grid)) * 100.0;
+
+        // Здесь Instant — ключ часа
+        return new EnergyData(hu.getHourKey(), communityDepleted, gridPortion);
     }
 
-    /** Публикация */
-    public void publish(EnergyData data) {
-        rabbitTemplate.convertAndSend(inputQueue, data);
+    /**
+     * Исторические данные за [start, end], включая граничные часы.
+     */
+    public List<EnergyData> getHistoricalEnergyData(Instant start, Instant end) {
+        return repo.findAll()
+                .stream()
+                .filter(hu -> !hu.getHourKey().isBefore(start) && !hu.getHourKey().isAfter(end))
+                .map(hu -> {
+                    double prod = hu.getCommunityProduced();
+                    double used = hu.getCommunityUsed();
+                    double grid = hu.getGridUsed();
+
+                    double communityDepleted = prod == 0.0
+                            ? 100.0
+                            : Math.min(100.0, (used / prod) * 100.0);
+                    double gridPortion = (prod + grid) == 0.0
+                            ? 0.0
+                            : (grid / (prod + grid)) * 100.0;
+
+                    return new EnergyData(hu.getHourKey(), communityDepleted, gridPortion);
+                })
+                // Сортируем по времени по возрастанию
+                .sorted(Comparator.comparing(EnergyData::getHour))
+                .collect(Collectors.toList());
     }
 }

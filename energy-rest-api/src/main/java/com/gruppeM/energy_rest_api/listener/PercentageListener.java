@@ -12,7 +12,6 @@ import org.springframework.stereotype.Component;
 public class PercentageListener {
 
     private static final Logger log = LoggerFactory.getLogger(PercentageListener.class);
-
     private final CurrentPercentageRepository repo;
 
     public PercentageListener(CurrentPercentageRepository repo) {
@@ -21,11 +20,14 @@ public class PercentageListener {
 
     @RabbitListener(queues = "${energy.percentage-queue}")
     public void onPercentage(PercentageData pd) {
-        log.info("<<< REST-API получил PercentageData: hourKey={} percentage={}",
-                pd.getHourKey(), pd.getPercentage());
+        log.info("<<< REST-API получил PercentageData: hourKey={}, communityDepleted={}, gridPortion={}",
+                pd.getHourKey(), pd.getCommunityDepleted(), pd.getGridPortion());
 
-        double gridPct = pd.getPercentage();
-        double communityDepleted = 100.0 - gridPct;
-        repo.save(new CurrentPercentage(pd.getHourKey(), communityDepleted, gridPct));
+        CurrentPercentage cp = new CurrentPercentage(
+                pd.getHourKey(),
+                pd.getCommunityDepleted(),
+                pd.getGridPortion()
+        );
+        repo.save(cp);
     }
 }

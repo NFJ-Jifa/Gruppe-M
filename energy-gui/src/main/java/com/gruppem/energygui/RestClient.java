@@ -10,7 +10,8 @@ import java.net.http.HttpResponse;
 
 public class RestClient {
 
-    private static final String BASE_URL = "http://localhost:8080";
+    public static String BASE_URL = "http://localhost:8080";
+
     private final HttpClient httpClient = HttpClient.newHttpClient();
 
     public String getCurrentEnergyData() throws IOException, InterruptedException {
