@@ -5,98 +5,85 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.control.TableCell;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleStringProperty;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import java.time.format.DateTimeFormatter;
-import java.time.ZoneId;
-import java.time.OffsetDateTime;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.util.Locale;
 
 import java.time.*;
-
-import java.time.format.DateTimeParseException;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 
 public class Controller {
 
-    @FXML private Button getCurrentButton;
-    @FXML private Button getHistoricalButton;
-    @FXML private TextField startTimeField;
-    @FXML private TextField endTimeField;
+    // Верхние лейблы и кнопка Refresh
+    @FXML private Label communityLabel;
+    @FXML private Label gridLabel;
+    @FXML private Button refreshButton;
+
+    // Поля для диапазона и кнопка показа истории
     @FXML private DatePicker startDatePicker;
+    @FXML private TextField startTimeField;
     @FXML private DatePicker endDatePicker;
-    @FXML private TextArea outputArea;
+    @FXML private TextField endTimeField;
+    @FXML private Button getHistoricalButton;
+
     @FXML private Label statusLabel;
+
+    // Таблица истории
     @FXML private TableView<EnergyDataFX> historyTable;
     @FXML private TableColumn<EnergyDataFX, String> hourColumn;
     @FXML private TableColumn<EnergyDataFX, Number> communityDepletedColumn;
     @FXML private TableColumn<EnergyDataFX, Number> gridPortionColumn;
 
-    static RestClient restClient = new RestClient();
+    // Новые лейблы для суммарных kWh
+    @FXML private Label prodLabel;
+    @FXML private Label usedLabel;
+    @FXML private Label gridUsedLabel;
+
+    private static RestClient restClient = new RestClient();
     private static final DateTimeFormatter ISO_OFFSET_FMT = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
     private static final DateTimeFormatter UI_HOUR_FMT   = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
-    // Границы данных для UI
+    // Доступный диапазон
     private Instant availableFrom, availableTo;
 
     @FXML
     private void initialize() {
-        // 1) Запрос диапазона доступных данных
+        // 1) Получаем available-range
         new Thread(() -> {
             try {
-                String resp = restClient.getAvailableRange();
-                JSONObject json = new JSONObject(resp);
-                availableFrom = Instant.parse(json.getString("from"));
-                availableTo   = Instant.parse(json.getString("to"));
+                JSONObject range = new JSONObject(restClient.getAvailableRange());
+                availableFrom = Instant.parse(range.getString("from"));
+                availableTo   = Instant.parse(range.getString("to"));
 
                 Platform.runLater(() -> {
-                    LocalDate fromDate = LocalDateTime
-                            .ofInstant(availableFrom, ZoneOffset.UTC)
-                            .toLocalDate();
-                    LocalDate toDate = LocalDateTime
-                            .ofInstant(availableTo, ZoneOffset.UTC)
-                            .toLocalDate();
+                    LocalDateTime fromLdt = LocalDateTime.ofInstant(availableFrom, ZoneOffset.UTC);
+                    LocalDateTime toLdt   = LocalDateTime.ofInstant(availableTo,   ZoneOffset.UTC);
 
-                    startDatePicker.setValue(fromDate);
-                    endDatePicker.setValue(toDate);
-                    startTimeField.setText(
-                            LocalDateTime.ofInstant(availableFrom, ZoneOffset.UTC)
-                                    .toLocalTime().toString()
-                    );
-                    endTimeField.setText(
-                            LocalDateTime.ofInstant(availableTo, ZoneOffset.UTC)
-                                    .toLocalTime().toString()
-                    );
+                    startDatePicker.setValue(fromLdt.toLocalDate());
+                    startTimeField .setText(fromLdt.toLocalTime().toString());
+                    endDatePicker  .setValue(toLdt.toLocalDate());
+                    endTimeField   .setText(toLdt.toLocalTime().toString());
 
                     statusLabel.setText(String.format(
                             "Доступно: %s … %s",
-                            UI_HOUR_FMT.format(LocalDateTime.ofInstant(availableFrom, ZoneOffset.UTC)),
-                            UI_HOUR_FMT.format(LocalDateTime.ofInstant(availableTo,   ZoneOffset.UTC))
+                            UI_HOUR_FMT.format(fromLdt),
+                            UI_HOUR_FMT.format(toLdt)
                     ));
                 });
             } catch (Exception ex) {
-                ex.printStackTrace();
                 Platform.runLater(() ->
                         statusLabel.setText("Не удалось получить диапазон данных")
                 );
             }
         }).start();
 
-        // 2) Настройка колонок
-
-        // Час — просто строка
+        // 2) Настраиваем таблицу истории
         hourColumn.setCellValueFactory(c ->
                 new SimpleStringProperty(c.getValue().getHour())
         );
-        // Убираем любой cellFactory для hourColumn — он не нужен
-
-        // Проценты как числа
         communityDepletedColumn.setCellValueFactory(c ->
                 new SimpleDoubleProperty(c.getValue().getCommunityDepleted())
         );
@@ -104,94 +91,58 @@ public class Controller {
                 new SimpleDoubleProperty(c.getValue().getGridPortion())
         );
 
-        // Форматируем проценты с двумя знаками и знаком '%'
-        communityDepletedColumn.setCellFactory(col -> new TableCell<EnergyDataFX, Number>() {
+        communityDepletedColumn.setCellFactory(col -> new TableCell<>() {
             @Override protected void updateItem(Number val, boolean empty) {
                 super.updateItem(val, empty);
-                setText(empty || val == null
-                        ? null
-                        : String.format("%.2f%%", val.doubleValue()));
+                setText(empty || val == null ? null
+                        : String.format(Locale.US, "%.2f%% used", val.doubleValue()));
             }
         });
-        gridPortionColumn.setCellFactory(col -> new TableCell<EnergyDataFX, Number>() {
+        gridPortionColumn.setCellFactory(col -> new TableCell<>() {
             @Override protected void updateItem(Number val, boolean empty) {
                 super.updateItem(val, empty);
-                setText(empty || val == null
-                        ? null
-                        : String.format("%.2f%%", val.doubleValue()));
+                setText(empty || val == null ? null
+                        : String.format(Locale.US, "%.2f%%", val.doubleValue()));
             }
         });
 
         // 3) Обработчики кнопок
-        getCurrentButton   .setOnAction(e -> handleGetCurrentData());
+        refreshButton.setOnAction(e -> handleGetCurrentData());
         getHistoricalButton.setOnAction(e -> handleGetHistoricalData());
-    }
-    public static void setRestClient(RestClient client) {
-        restClient = client;
-    }
-
-
-
-    /**
-     * Универсальный парсер ISO-строк:
-     *  - если есть суффикс Z или смещение → Instant.parse
-     *  - иначе → LocalDateTime.parse
-     */
-    private LocalDateTime parseToLocalDateTime(String iso) {
-        try {
-            Instant inst = Instant.parse(iso);
-            return LocalDateTime.ofInstant(inst, ZoneId.systemDefault());
-        } catch (DateTimeParseException ex) {
-            return LocalDateTime.parse(iso);
-        }
     }
 
     @FXML
     private void handleGetCurrentData() {
-        getCurrentButton.setDisable(true);
+        refreshButton.setDisable(true);
+        statusLabel.setText("Статус: Загружаем текущее…");
         new Thread(() -> {
             try {
-                Platform.runLater(() -> statusLabel.setText("Статус: Загружаем текущее…"));
                 JSONObject json = new JSONObject(restClient.getCurrentEnergyData());
-
-                String isoHour = json.getString("hour");
-                double cd      = json.getDouble("communityDepleted");
-                double gp      = json.getDouble("gridPortion");
-
-                // Новый код: парсим в Instant и форматируем в UTC
-                Instant inst = Instant.parse(isoHour);
-                String displayHour = LocalDateTime
-                        .ofInstant(inst, ZoneOffset.UTC)
-                        .format(UI_HOUR_FMT);
-
-                String out = String.format(Locale.US,
-                        "Hour: %s\nCommunity Depleted: %.2f%%\nGrid Portion: %.2f%%",
-                        displayHour, cd, gp
-                );
+                Instant inst = Instant.parse(json.getString("hour"));
+                double cd = json.getDouble("communityDepleted");
+                double gp = json.getDouble("gridPortion");
 
                 Platform.runLater(() -> {
-                    outputArea.setText(out);
-                    statusLabel.setText("Статус: Текущее загружено");
+                    communityLabel.setText(String.format(Locale.US, "%.2f%% used", cd));
+                    gridLabel     .setText(String.format(Locale.US, "%.2f%%",    gp));
+                    statusLabel   .setText("Статус: Текущее загружено");
                 });
             } catch (Exception ex) {
-                ex.printStackTrace();
                 Platform.runLater(() -> {
+                    statusLabel.setText("Статус: Ошибка при загрузке");
                     new Alert(Alert.AlertType.ERROR,
                             "Не удалось получить текущее значение:\n" + ex.getMessage(),
                             ButtonType.OK).showAndWait();
-                    statusLabel.setText("Статус: Ошибка при загрузке");
                 });
             } finally {
-                Platform.runLater(() -> getCurrentButton.setDisable(false));
+                Platform.runLater(() -> refreshButton.setDisable(false));
             }
         }).start();
     }
 
-
     @FXML
     private void handleGetHistoricalData() {
         try {
-            // 1) Собираем Instant из UI
             LocalDate startD = startDatePicker.getValue();
             LocalTime startT = LocalTime.parse(startTimeField.getText());
             Instant startI = startD.atTime(startT).toInstant(ZoneOffset.UTC);
@@ -201,74 +152,65 @@ public class Controller {
             Instant endI = endD.atTime(endT).toInstant(ZoneOffset.UTC);
 
             getHistoricalButton.setDisable(true);
+            statusLabel.setText("Статус: Загружаем историю…");
+
             new Thread(() -> {
                 try {
-                    Platform.runLater(() ->
-                            statusLabel.setText("Статус: Загружаем историю…")
-                    );
-
                     String resp = restClient.getHistoricalEnergyData(
                             startI.atOffset(ZoneOffset.UTC).format(ISO_OFFSET_FMT),
                             endI  .atOffset(ZoneOffset.UTC).format(ISO_OFFSET_FMT)
                     );
                     JSONArray arr = new JSONArray(resp);
                     ObservableList<EnergyDataFX> list = FXCollections.observableArrayList();
-                    StringBuilder sb = new StringBuilder();
 
+                    double sumProduced = 0, sumUsed = 0, sumGrid = 0;
                     for (int i = 0; i < arr.length(); i++) {
                         JSONObject o = arr.getJSONObject(i);
-                        String isoHour = o.getString("hour");
-
-                        // Парсим через Instant и форматируем в UTC
-                        Instant inst = Instant.parse(isoHour);
-                        LocalDateTime dtUtc = LocalDateTime.ofInstant(inst, ZoneOffset.UTC);
-                        String displayHour = dtUtc.format(UI_HOUR_FMT);
-
+                        Instant inst = Instant.parse(o.getString("hour"));
+                        String disp = LocalDateTime.ofInstant(inst, ZoneOffset.UTC)
+                                .format(UI_HOUR_FMT);
+                        double prod = o.getDouble("communityProduced");
+                        double used = o.getDouble("communityUsed");
+                        double grid = o.getDouble("gridUsed");
                         double cd = o.getDouble("communityDepleted");
                         double gp = o.getDouble("gridPortion");
 
-                        sb.append(String.format(Locale.US,
-                                "Hour: %s\nCommunity Depleted: %.2f%%\nGrid Portion: %.2f%%\n\n",
-                                displayHour, cd, gp
-                        ));
+                        sumProduced += prod;
+                        sumUsed     += used;
+                        sumGrid     += grid;
 
-                        list.add(new EnergyDataFX(displayHour, cd, gp));
+                        list.add(new EnergyDataFX(disp, cd, gp));
                     }
 
+                    double pSum = sumProduced, uSum = sumUsed, gSum = sumGrid;
                     Platform.runLater(() -> {
                         historyTable.setItems(list);
-                        outputArea.setText(sb.toString());
-                        statusLabel.setText("Статус: История загружена");
+                        prodLabel   .setText(String.format(Locale.US, "Community produced %.3f kWh", pSum));
+                        usedLabel   .setText(String.format(Locale.US, "Community used     %.3f kWh", uSum));
+                        gridUsedLabel.setText(String.format(Locale.US, "Grid used          %.3f kWh", gSum));
+                        statusLabel .setText("Статус: История загружена");
                     });
                 } catch (Exception ex) {
-                    ex.printStackTrace();
                     Platform.runLater(() -> {
                         historyTable.getItems().clear();
+                        statusLabel.setText("Статус: Ошибка загрузки истории");
                         new Alert(Alert.AlertType.ERROR,
                                 "Не удалось загрузить историю:\n" + ex.getMessage(),
                                 ButtonType.OK).showAndWait();
-                        statusLabel.setText("Статус: Ошибка загрузки истории");
                     });
                 } finally {
-                    Platform.runLater(() ->
-                            getHistoricalButton.setDisable(false)
-                    );
+                    Platform.runLater(() -> getHistoricalButton.setDisable(false));
                 }
             }).start();
 
         } catch (Exception ex) {
-            ex.printStackTrace();
             historyTable.getItems().clear();
-            outputArea.setText("Неверный формат даты/времени");
-            statusLabel.setText("Статус: Ошибка ввода");
+            statusLabel.setText("Статус: Ошибка ввода даты/времени");
         }
     }
 
-
-
-
-
-
-
-
+    /** Для тестирования можно подменить RestClient */
+    public static void setRestClient(RestClient client) {
+        restClient = client;
+    }
 }

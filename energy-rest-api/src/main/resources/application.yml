@@ -22,7 +22,7 @@ spring:
     password: guest
 
 energy:
-  input-queue:      energy.input
+  input-queue:     energy.input
   update-queue:     energy.update
   percentage-queue: energy.percentage
 

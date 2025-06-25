@@ -22,7 +22,6 @@ public class RabbitConfiguration {
     @Value("${spring.rabbitmq.port}")     private int    port;
     @Value("${spring.rabbitmq.username}") private String user;
     @Value("${spring.rabbitmq.password}") private String pass;
-    @Value("${energy.raw-queue}")         private String rawQueue;
     @Value("${energy.update-queue}")      private String updateQueue;
     @Value("${energy.final-queue}")       private String finalQueue;
 
@@ -67,7 +66,7 @@ public class RabbitConfiguration {
         return f;
     }
 
-    @Bean public Queue rawQueue()    { return new Queue(rawQueue,    true); }
+
     @Bean public Queue updateQueue() { return new Queue(updateQueue, true); }
     @Bean public Queue finalQueue()  { return new Queue(finalQueue,  true); }
 }

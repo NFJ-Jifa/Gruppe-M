@@ -34,32 +34,58 @@ public class UsageService {
     @Transactional
     public void onMessage(EnergyMessage msg) {
         Instant hourKey = msg.getDatetime().truncatedTo(ChronoUnit.HOURS);
-
         HourlyUsage usage = repo.findById(hourKey)
                 .orElse(new HourlyUsage(hourKey));
 
         if ("PRODUCER".equals(msg.getType())) {
+            // Производство всегда от сообщества
             usage.setCommunityProduced(usage.getCommunityProduced() + msg.getKwh());
+
         } else if ("USER".equals(msg.getType())) {
-            double available = usage.getCommunityProduced() - usage.getCommunityUsed();
-            if (msg.getKwh() <= available) {
-                usage.setCommunityUsed(usage.getCommunityUsed() + msg.getKwh());
-            } else {
-                // part taken from community
-                usage.setCommunityUsed(usage.getCommunityUsed() + available);
-                // remainder from grid
-                double gridDelta = msg.getKwh() - available;
-                usage.setGridUsed(usage.getGridUsed() + gridDelta);
-                log.info("Hour {}: gridUsed increased by {} kWh (available was {})", hourKey, gridDelta, available);
+            switch (msg.getAssociation()) {
+                case "COMMUNITY" -> {
+                    double available = usage.getCommunityProduced() - usage.getCommunityUsed();
+                    if (msg.getKwh() <= available) {
+                        // всё в сообщество
+                        usage.setCommunityUsed(usage.getCommunityUsed() + msg.getKwh());
+                    } else {
+                        // часть в сообщество
+                        usage.setCommunityUsed(usage.getCommunityUsed() + available);
+                        // остаток в сеть
+                        double gridDelta = msg.getKwh() - available;
+                        usage.setGridUsed(usage.getGridUsed() + gridDelta);
+                        log.info("Hour {}: split USER-COMMUNITY {} into community={}, grid={}",
+                                hourKey, msg.getKwh(), available, gridDelta);
+                    }
+                }
+                case "GRID" -> {
+                    // всё в сеть
+                    usage.setGridUsed(usage.getGridUsed() + msg.getKwh());
+                }
+                default -> {
+                    // fallback-сплит для некорректных association
+                    double available = usage.getCommunityProduced() - usage.getCommunityUsed();
+                    double communityPart = Math.min(available, msg.getKwh());
+                    double gridPart = msg.getKwh() - communityPart;
+                    usage.setCommunityUsed(usage.getCommunityUsed() + communityPart);
+                    usage.setGridUsed(usage.getGridUsed() + gridPart);
+                    log.warn("Unknown association '{}', split {} into community={}, grid={}",
+                            msg.getAssociation(), msg.getKwh(), communityPart, gridPart);
+                }
             }
+
+        } else {
+            log.warn("Unknown message type '{}'", msg.getType());
         }
 
         repo.save(usage);
-        log.debug("Saved HourlyUsage [{}]: produced={}, used={}, gridUsed={}",
+        rabbit.convertAndSend(updateQueue, usage);
+        log.debug("Hour {}: produced={} used={} grid={}",
                 hourKey,
                 usage.getCommunityProduced(),
                 usage.getCommunityUsed(),
                 usage.getGridUsed());
-        rabbit.convertAndSend(updateQueue, usage);
     }
+
+
 }

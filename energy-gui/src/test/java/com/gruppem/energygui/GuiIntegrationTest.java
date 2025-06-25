@@ -17,12 +17,12 @@ import org.testfx.framework.junit5.ApplicationExtension;
 import org.testfx.framework.junit5.Start;
 import org.testfx.util.WaitForAsyncUtils;
 
+
 @ExtendWith(ApplicationExtension.class)
 class GuiIntegrationTest {
 
     @Start
     public void start(Stage stage) throws Exception {
-        // Подменяем REST-клиент ДО того, как FXML вызовет initialize()
         Controller.setRestClient(new RestClient() {
             @Override
             public String getAvailableRange() {
@@ -36,8 +36,8 @@ class GuiIntegrationTest {
             public String getHistoricalEnergyData(String start, String end) {
                 return """
                     [
-                      {"hour":"2025-06-22T21:00:00Z","communityDepleted":29.05,"gridPortion":13.20},
-                      {"hour":"2025-06-22T22:00:00Z","communityDepleted":33.68,"gridPortion":0.08}
+                      {"hour":"2025-06-22T21:00:00Z","communityProduced":143.024,"communityUsed":130.101,"gridUsed":14.923,"communityDepleted":29.05,"gridPortion":13.20},
+                      {"hour":"2025-06-22T22:00:00Z","communityProduced":150.000,"communityUsed":140.000,"gridUsed":10.000,"communityDepleted":93.33,"gridPortion":6.67}
                     ]
                 """;
             }
@@ -52,27 +52,26 @@ class GuiIntegrationTest {
     }
 
     @Test
-    void testGetCurrentPopulatesOutput(FxRobot robot) {
-        // Нажимаем кнопку «Get Current»
-        robot.clickOn("#getCurrentButton");
+    void testGetCurrentUpdatesLabels(FxRobot robot) {
+        // Кликаем по кнопке Refresh (fx:id="refreshButton")
+        robot.clickOn("#refreshButton");
         WaitForAsyncUtils.waitForFxEvents();
 
         // Проверяем статус
         Label status = robot.lookup("#statusLabel").queryAs(Label.class);
         assertEquals("Статус: Текущее загружено", status.getText());
 
-        // Проверяем содержимое TextArea
-        TextArea out = robot.lookup("#outputArea").queryAs(TextArea.class);
-        String txt = out.getText();
-        assertTrue(txt.contains("Community Depleted: 29.05%"),
-                "Ожидали «Community Depleted: 29.05%», получили:\n" + txt);
-        assertTrue(txt.contains("Grid Portion: 13.20%"),
-                "Ожидали «Grid Portion: 13.20%», получили:\n" + txt);
+        // Проверяем значения лейблов community / grid
+        Label community = robot.lookup("#communityLabel").queryAs(Label.class);
+        Label grid      = robot.lookup("#gridLabel").queryAs(Label.class);
+
+        assertEquals("29.05% used", community.getText());
+        assertEquals("13.20%",     grid.getText());
     }
 
     @Test
-    void testGetHistoricalPopulatesTableOnly(FxRobot robot) {
-        // Нажимаем кнопку «Get Historical»
+    void testGetHistoricalPopulatesTableAndSummaries(FxRobot robot) {
+        // Кликаем по кнопке Show Data (fx:id="getHistoricalButton")
         robot.clickOn("#getHistoricalButton");
         WaitForAsyncUtils.waitForFxEvents();
 
@@ -83,15 +82,16 @@ class GuiIntegrationTest {
         // Должны увидеть ровно 2 строки
         assertEquals(2, table.getItems().size(), "Неверное число строк в таблице");
 
-        EnergyDataFX first  = table.getItems().get(0);
-        EnergyDataFX second = table.getItems().get(1);
+        // Проверяем, что суммарные метки обновились
+        Label prodLabel     = robot.lookup("#prodLabel").queryAs(Label.class);
+        Label usedLabel     = robot.lookup("#usedLabel").queryAs(Label.class);
+        Label gridUsedLabel = robot.lookup("#gridUsedLabel").queryAs(Label.class);
 
-        assertEquals("22.06.2025 21:00", first.getHour());
-        assertEquals(29.05, first.getCommunityDepleted(), 1e-6);
-        assertEquals(13.20, first.getGridPortion(),       1e-6);
-
-        assertEquals("22.06.2025 22:00", second.getHour());
-        assertEquals(33.68, second.getCommunityDepleted(), 1e-6);
-        assertEquals( 0.08, second.getGridPortion(),       1e-6);
+        // Сумма communityProduced = 143.024 + 150.000 = 293.024
+        assertTrue(prodLabel.getText().contains("293.024"), "Неверная сумма произведённой энергии");
+        // Сумма communityUsed = 130.101 + 140.000 = 270.101
+        assertTrue(usedLabel.getText().contains("270.101"), "Неверная сумма потреблённой энергии");
+        // Сумма gridUsed = 14.923 + 10.000 = 24.923
+        assertTrue(gridUsedLabel.getText().contains("24.923"), "Неверная сумма энергии из сети");
     }
 }

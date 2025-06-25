@@ -6,7 +6,7 @@ spring:
     password: guest
 
 energy:
-  raw-queue:    energy.messages
+
   update-queue: energy.update
   final-queue:  energy.percentage
 

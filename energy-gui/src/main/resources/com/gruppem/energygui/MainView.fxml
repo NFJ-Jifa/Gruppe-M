@@ -1,54 +1,73 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.geometry.Insets?>
 
-<BorderPane xmlns:fx="http://javafx.com/fxml" fx:controller="com.gruppem.energygui.Controller">
+<BorderPane xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.gruppem.energygui.Controller">
 
+    <!-- Верхняя панель: текущие показатели + кнопка Refresh -->
     <top>
         <VBox spacing="10">
             <padding>
                 <Insets top="10" right="10" bottom="10" left="10"/>
             </padding>
+            <HBox spacing="20" alignment="CENTER_LEFT">
+                <Label text="Community Pool:"/>
+                <Label fx:id="communityLabel" text="– % used" style="-fx-font-size: 16px;"/>
+                <Label text="Grid Portion:"/>
+                <Label fx:id="gridLabel" text="– %" style="-fx-font-size: 16px;"/>
+                <Button fx:id="refreshButton" text="Refresh"/>
+            </HBox>
 
+            <!-- Секция выбора периода -->
             <HBox spacing="10" alignment="CENTER_LEFT">
                 <VBox spacing="5">
-                    <Label text="Start Date:"/>
+                    <Label text="Start:"/>
                     <DatePicker fx:id="startDatePicker"/>
                     <TextField fx:id="startTimeField" promptText="HH:mm:ss"/>
                 </VBox>
                 <VBox spacing="5">
-                    <Label text="End Date:"/>
+                    <Label text="End:"/>
                     <DatePicker fx:id="endDatePicker"/>
                     <TextField fx:id="endTimeField" promptText="HH:mm:ss"/>
                 </VBox>
                 <VBox spacing="5">
-                    <Button fx:id="getCurrentButton" text="Get Current Data"/>
-                    <Button fx:id="getHistoricalButton" text="Get Historical Data"/>
+                    <Button fx:id="getHistoricalButton" text="Show Data"/>
                 </VBox>
             </HBox>
-
-            <TableView fx:id="historyTable" prefHeight="300">
-                <columns>
-                    <TableColumn fx:id="hourColumn" text="Hour" prefWidth="200"/>
-                    <TableColumn fx:id="communityDepletedColumn" text="Community Depleted" prefWidth="200"/>
-                    <TableColumn fx:id="gridPortionColumn" text="Grid Portion" prefWidth="200"/>
-                </columns>
-            </TableView>
         </VBox>
     </top>
 
+    <!-- Центр: таблица истории -->
     <center>
-        <TextArea fx:id="outputArea" prefRowCount="20" prefColumnCount="60" wrapText="true"/>
+        <TableView fx:id="historyTable" prefHeight="300">
+            <columns>
+                <TableColumn fx:id="hourColumn" text="Hour" prefWidth="200"/>
+                <TableColumn fx:id="communityDepletedColumn" text="Community Depleted" prefWidth="200"/>
+                <TableColumn fx:id="gridPortionColumn" text="Grid Portion" prefWidth="200"/>
+            </columns>
+        </TableView>
     </center>
 
+    <!-- Нижняя панель: статус и суммарные значения -->
     <bottom>
-        <Label fx:id="statusLabel" text="Status: Ready">
+        <VBox spacing="10">
             <padding>
-                <Insets top="5" bottom="5" left="10" right="10"/>
+                <Insets top="10" right="10" bottom="10" left="10"/>
             </padding>
-        </Label>
+            <!-- Строка статуса -->
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label fx:id="statusLabel" text="Status: Ready"/>
+            </HBox>
+
+            <!-- Секция сумм -->
+            <VBox spacing="5" alignment="CENTER_LEFT">
+                <Label fx:id="prodLabel"    text="Community produced 0.000 kWh"/>
+                <Label fx:id="usedLabel"    text="Community used     0.000 kWh"/>
+                <Label fx:id="gridUsedLabel" text="Grid used          0.000 kWh"/>
+            </VBox>
+        </VBox>
     </bottom>
 
 </BorderPane>

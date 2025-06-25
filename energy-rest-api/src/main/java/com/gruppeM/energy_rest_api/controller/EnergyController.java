@@ -1,83 +1,81 @@
 package com.gruppeM.energy_rest_api.controller;
 
+import com.gruppeM.energy_rest_api.dto.HistoricalUsageDto;
+import com.gruppeM.energy_rest_api.dto.EnergyMessage;
+import com.gruppeM.energy_rest_api.model.AvailableRange;
 import com.gruppeM.energy_rest_api.model.EnergyData;
-import com.gruppeM.energy_rest_api.model.HourlyUsage;
 import com.gruppeM.energy_rest_api.repository.HourlyUsageRepository;
 import com.gruppeM.energy_rest_api.service.EnergyService;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.Instant;
-import java.util.Comparator;
-import java.util.HashMap;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/energy")
 public class EnergyController {
 
-    private final EnergyService energyService;
-    private final org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate;
     private final HourlyUsageRepository hourlyRepo;
-    private final String publishQueueName;
+    private final EnergyService energyService;
+    private final RabbitTemplate rabbit;
+    private final String inputQueue;
 
-    public EnergyController(EnergyService energyService,
-                            org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate,
-                            HourlyUsageRepository hourlyRepo,
-                            @Value("${energy.input-queue:energy.input}") String publishQueueName) {
-        this.energyService    = energyService;
-        this.rabbitTemplate   = rabbitTemplate;
-        this.hourlyRepo       = hourlyRepo;
-        this.publishQueueName = publishQueueName;
+    public EnergyController(HourlyUsageRepository hourlyRepo,
+                            EnergyService energyService,
+                            RabbitTemplate rabbit,
+                            @Value("${energy.input-queue}") String inputQueue) {
+        this.hourlyRepo    = hourlyRepo;
+        this.energyService = energyService;
+        this.rabbit        = rabbit;
+        this.inputQueue    = inputQueue;
     }
 
-    /** 1) Текущее */
     @GetMapping("/current")
-    public EnergyData getCurrent() {
-        return energyService.getCurrentEnergyStatus();
+    public ResponseEntity<EnergyData> getCurrent() {
+        EnergyData current = energyService.getCurrentEnergyStatus();
+        return ResponseEntity.ok(current);
     }
 
-    /** 2) История по Instant */
-    @GetMapping("/historical")
-    public ResponseEntity<List<EnergyData>> getHistorical(
-            @RequestParam("start") Instant start,
-            @RequestParam("end")   Instant end) {
+    /** Публикация сырых сообщений */
+    @PostMapping("/publish")
+    public ResponseEntity<Void> publishRaw(@RequestBody EnergyMessage msg) {
+        rabbit.convertAndSend(inputQueue, msg);
+        return ResponseEntity.accepted().build();
+    }
 
-        List<EnergyData> list = energyService.getHistoricalEnergyData(start, end);
+    /** Доступный диапазон */
+    @GetMapping("/available-range")
+    public ResponseEntity<AvailableRange> availableRange() {
+        Optional<Instant> minOpt = hourlyRepo.findMinHourKey();
+        Optional<Instant> maxOpt = hourlyRepo.findMaxHourKey();
+        if (minOpt.isEmpty() || maxOpt.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(new AvailableRange(minOpt.get(), maxOpt.get()));
+    }
+
+    /** 2) Исторические данные с raw kWh и % */
+    @GetMapping("/historical")
+    public ResponseEntity<List<HistoricalUsageDto>> getHistorical(
+            @RequestParam("start")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant start,
+            @RequestParam("end")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant end) {
+
+        // Усечём до границ часа
+        Instant from = start.truncatedTo(ChronoUnit.HOURS);
+        Instant to   = end.truncatedTo(ChronoUnit.HOURS);
+
+        List<HistoricalUsageDto> list = energyService.getHistoricalEnergyData(from, to);
         if (list.isEmpty()) {
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.ok(list);
-    }
-
-    /** 3) Эндпойнт для публикации */
-    @PostMapping("/publish")
-    public ResponseEntity<Void> publish(@RequestBody EnergyData data) {
-        rabbitTemplate.convertAndSend(publishQueueName, data);
-        return ResponseEntity.ok().build();
-    }
-
-    /** Геттер для тестов */
-    public String getPublishQueueName() {
-        return publishQueueName;
-    }
-
-    /**
-     * 4) Новый эндпойнт: отдаёт фактический диапазон в базе.
-     *    Вернёт JSON {"from":"…Z","to":"…Z"}
-     */
-    @GetMapping("/available-range")
-    public AvailableRange availableRange() {
-        Instant min = hourlyRepo.findAll().stream()
-                .map(HourlyUsage::getHourKey)
-                .min(Comparator.naturalOrder())
-                .orElse(Instant.EPOCH);
-        Instant max = hourlyRepo.findAll().stream()
-                .map(HourlyUsage::getHourKey)
-                .max(Comparator.naturalOrder())
-                .orElse(Instant.EPOCH);
-        return new AvailableRange(min, max);
     }
 }

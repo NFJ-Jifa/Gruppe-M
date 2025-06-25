@@ -1,5 +1,6 @@
 package com.gruppeM.energy_rest_api.service;
 
+import com.gruppeM.energy_rest_api.dto.HistoricalUsageDto;
 import com.gruppeM.energy_rest_api.model.EnergyData;
 import com.gruppeM.energy_rest_api.model.HourlyUsage;
 import com.gruppeM.energy_rest_api.repository.HourlyUsageRepository;
@@ -13,6 +14,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class EnergyService {
+
+
 
     private final HourlyUsageRepository repo;
 
@@ -50,26 +53,29 @@ public class EnergyService {
     /**
      * Исторические данные за [start, end], включая граничные часы.
      */
-    public List<EnergyData> getHistoricalEnergyData(Instant start, Instant end) {
-        return repo.findAll()
+    public List<HistoricalUsageDto> getHistoricalEnergyData(Instant start, Instant end) {
+        return repo.findAllByHourKeyBetween(start, end)
                 .stream()
-                .filter(hu -> !hu.getHourKey().isBefore(start) && !hu.getHourKey().isAfter(end))
+                .sorted(Comparator.comparing(HourlyUsage::getHourKey))
                 .map(hu -> {
                     double prod = hu.getCommunityProduced();
                     double used = hu.getCommunityUsed();
                     double grid = hu.getGridUsed();
-
-                    double communityDepleted = prod == 0.0
+                    double depleted = prod == 0.0
                             ? 100.0
                             : Math.min(100.0, (used / prod) * 100.0);
-                    double gridPortion = (prod + grid) == 0.0
+                    double portion = (prod + grid) == 0.0
                             ? 0.0
                             : (grid / (prod + grid)) * 100.0;
-
-                    return new EnergyData(hu.getHourKey(), communityDepleted, gridPortion);
+                    return new HistoricalUsageDto(
+                            hu.getHourKey(),
+                            prod,
+                            used,
+                            grid,
+                            depleted,
+                            portion
+                    );
                 })
-                // Сортируем по времени по возрастанию
-                .sorted(Comparator.comparing(EnergyData::getHour))
                 .collect(Collectors.toList());
     }
 }
