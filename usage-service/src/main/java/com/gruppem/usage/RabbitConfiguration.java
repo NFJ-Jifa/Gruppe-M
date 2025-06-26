@@ -58,7 +58,7 @@ public class RabbitConfiguration {
         return tpl;
     }
 
-    // Обязательно подключаем конвертер и к @RabbitListener
+    // Make sure to also register the converter for @RabbitListener-based receivers
     @Bean
     public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(
             CachingConnectionFactory cf,
