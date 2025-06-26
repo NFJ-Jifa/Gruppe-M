@@ -20,7 +20,7 @@ public class UserApplication {
 
     private static final Logger log = LoggerFactory.getLogger(UserApplication.class);
 
-    // Инжектим из application.yml
+    // Injected from application.yml
     @Value("${energy.type}")
     private String type;
 
@@ -30,7 +30,7 @@ public class UserApplication {
     private final RabbitTemplate rabbitTemplate;
     private final String queue;
 
-    // Поставщики «текущего времени» — по умолчанию реальные, в тестах подменяем
+    // Time suppliers – use real time by default, replace in tests
     private Supplier<Instant> nowSupplier  = Instant::now;
     private Supplier<LocalTime> timeSupplier = LocalTime::now;
 
@@ -40,7 +40,7 @@ public class UserApplication {
         this.queue = queue;
     }
 
-    // Сеттеры для тестов
+    // Setters for use in tests
     public void setType(String type) {
         this.type = type;
     }
@@ -69,6 +69,8 @@ public class UserApplication {
         LocalTime currentTime = timeSupplier.get();
 
         double base = new Random().nextDouble() * 2.0;
+
+        // If current time is within peak hours (7–9 AM or 6–8 PM), add extra load
         if ((currentTime.isAfter(LocalTime.of(6, 59)) && currentTime.isBefore(LocalTime.of(9, 1))) ||
                 (currentTime.isAfter(LocalTime.of(17,59)) && currentTime.isBefore(LocalTime.of(20,1)))) {
             base += 1.0 + new Random().nextDouble() * 3.0;
@@ -77,7 +79,7 @@ public class UserApplication {
         double communityKwh = Math.min(base, 2.0);
         double gridKwh = base - communityKwh;
 
-        // всегда шлём сообщение COMMUNITY (если >0)
+        // Always send COMMUNITY message (if > 0)
         if (communityKwh > 0) {
             EnergyMessage communityMsg = new EnergyMessage(
                     type, association, communityKwh, timestamp
@@ -86,7 +88,7 @@ public class UserApplication {
             log.info("Sent COMMUNITY usage: {}", communityMsg);
         }
 
-        // теперь — всегда второе GRID (может быть 0.0)
+        // Always send a second GRID message (may be 0.0)
         EnergyMessage gridMsg = new EnergyMessage(
                 type, "GRID", gridKwh, timestamp
         );

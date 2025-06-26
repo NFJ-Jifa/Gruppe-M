@@ -20,12 +20,16 @@ public class RabbitConfiguration {
 
     @Value("${spring.rabbitmq.host}")
     private String host;
+
     @Value("${spring.rabbitmq.port}")
     private int port;
+
     @Value("${spring.rabbitmq.username}")
     private String user;
+
     @Value("${spring.rabbitmq.password}")
     private String pass;
+
     @Value("${energy.queue}")
     private String energyQueueName;
 
@@ -39,17 +43,18 @@ public class RabbitConfiguration {
 
     @Bean
     public AmqpAdmin amqpAdmin(CachingConnectionFactory cf) {
-        // автоматически создаст все Queue‐бины на старте
+        // Automatically creates all Queue beans at application startup
         return new RabbitAdmin(cf);
     }
 
     @Bean
     public Jackson2JsonMessageConverter jsonConverter() {
         ObjectMapper mapper = new ObjectMapper()
-                .registerModule(new JavaTimeModule())
-                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-                .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
-        mapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
+                .registerModule(new JavaTimeModule()) // Support for Java 8 date/time types
+                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS) // Write dates in ISO-8601 format
+                .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS); // Avoid exceptions on empty beans
+
+        mapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY); // Serialize all fields
         return new Jackson2JsonMessageConverter(mapper);
     }
 
@@ -57,12 +62,12 @@ public class RabbitConfiguration {
     public RabbitTemplate rabbitTemplate(CachingConnectionFactory cf,
                                          Jackson2JsonMessageConverter converter) {
         RabbitTemplate tpl = new RabbitTemplate(cf);
-        tpl.setMessageConverter(converter);
+        tpl.setMessageConverter(converter); // Use JSON converter for message serialization
         return tpl;
     }
 
     @Bean
     public Queue energyQueue() {
-        return new Queue(energyQueueName, true);
+        return new Queue(energyQueueName, true); // Durable queue for energy messages
     }
 }

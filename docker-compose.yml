@@ -1,7 +1,6 @@
-
 services:
   rabbitmq:
-    image: rabbitmq:3-management
+    image: rabbitmq:management-alpine
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
@@ -14,77 +13,18 @@ services:
       timeout: 10s
       retries: 5
 
-  energy-rest-api:
-    build:
-      context: .
-      dockerfile: energy-rest-api/Dockerfile
-    ports:
-      - "8080:8080"
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
+  database:
+    image: postgres:alpine
     environment:
-      SPRING_RABBITMQ_HOST: rabbitmq
-      SPRING_RABBITMQ_PORT: 5672
-      SPRING_RABBITMQ_USERNAME: guest
-      SPRING_RABBITMQ_PASSWORD: guest
+      POSTGRES_USER: disysuser
+      POSTGRES_PASSWORD: disyspw
+      POSTGRES_DB: energydb
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U disysuser -d energydb" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  producer-service:
-    build:
-      context: .
-      dockerfile: producer-service/Dockerfile
-    ports:
-      - "8081:8080"
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-    environment:
-      SPRING_RABBITMQ_HOST: rabbitmq
-      SPRING_RABBITMQ_PORT: 5672
-      SPRING_RABBITMQ_USERNAME: guest
-      SPRING_RABBITMQ_PASSWORD: guest
 
-  usage-service:
-    build:
-      context: .
-      dockerfile: usage-service/Dockerfile
-    ports:
-      - "8082:8080"
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-    environment:
-      SPRING_RABBITMQ_HOST: rabbitmq
-      SPRING_RABBITMQ_PORT: 5672
-      SPRING_RABBITMQ_USERNAME: guest
-      SPRING_RABBITMQ_PASSWORD: guest
-
-  user-service:
-    build:
-      context: .
-      dockerfile: user-service/Dockerfile
-    ports:
-      - "8083:8080"
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-    environment:
-      SPRING_RABBITMQ_HOST: rabbitmq
-      SPRING_RABBITMQ_PORT: 5672
-      SPRING_RABBITMQ_USERNAME: guest
-      SPRING_RABBITMQ_PASSWORD: guest
-
-  percentage-service:
-    build:
-      context: .
-      dockerfile: percentage-service/Dockerfile
-    ports:
-      - "8084:8080"
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-    environment:
-      SPRING_RABBITMQ_HOST: rabbitmq
-      SPRING_RABBITMQ_PORT: 5672
-      SPRING_RABBITMQ_USERNAME: guest
-      SPRING_RABBITMQ_PASSWORD: guest

@@ -7,16 +7,16 @@ import lombok.Setter;
 import java.time.Instant;
 
 /**
- * DTO для отправки сообщений в RabbitMQ.
+ * DTO for sending messages to RabbitMQ.
  */
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
 @Getter
 @Setter
 public class EnergyMessage {
-    private String type;         // "PRODUCER" или "USER"
-    private String association;  // "COMMUNITY" или "GRID"
-    private double kwh;          // kWh
-    private Instant datetime;    // timestamp
+    private String type;         // "PRODUCER" or "USER"
+    private String association;  // "COMMUNITY" or "GRID"
+    private double kwh;          // Energy usage/production in kilowatt-hours
+    private Instant datetime;    // Timestamp of the message
 
     public EnergyMessage() {}
 
@@ -26,6 +26,7 @@ public class EnergyMessage {
         this.kwh = kwh;
         this.datetime = datetime;
     }
+
     public String getType() {
         return type;
     }

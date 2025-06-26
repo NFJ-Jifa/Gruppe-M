@@ -1,4 +1,11 @@
 spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/energydb
+    username: disysuser
+    password: disyspw
+  jpa:
+    hibernate:
+      ddl-auto: update
   rabbitmq:
     host: localhost
     port: 5672

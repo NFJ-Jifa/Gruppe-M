@@ -18,7 +18,7 @@ The solution comprises the following components:
 
 3. **Usage Service**
 
-    * Persists all incoming `EnergyMessage` records into an H2 (or PostgreSQL) database.
+    * Persists all incoming `EnergyMessage` records into an   PostgreSQL database.
     * Technologies: Spring Boot, Spring Data JPA, RabbitMQ
 
 4. **Percentage Service**
@@ -68,6 +68,9 @@ Each module is a standalone Maven/Spring Boot or JavaFX project.
 
    ```bash
    docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
+   **database+RabbitMQ**
+   docker compose up -d rabbitmq database
+
    ```
 
    UI: [http://localhost:15672](http://localhost:15672) (guest/guest)

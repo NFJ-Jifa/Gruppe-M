@@ -34,15 +34,15 @@ class UserServiceTest {
     void produceUsage_inPeakHours_sendsBothCommunityAndGrid() {
         app.produceUsage();
 
-        // Ловим все вызовы
+        // Capture all method calls
         ArgumentCaptor<EnergyMessage> cap = ArgumentCaptor.forClass(EnergyMessage.class);
         verify(rabbit, atLeast(1)).convertAndSend(eq(queueName), cap.capture());
 
         List<EnergyMessage> sentMessages = cap.getAllValues();
-        // Ожидаем ровно два сообщения: COMMUNITY и GRID
+        // Expect exactly two messages: COMMUNITY and GRID
         assertThat(sentMessages).hasSize(2);
 
-        // Проверяем, что присутствуют оба типа ассоциаций
+        // Check that both association types are present
         boolean hasCommunity = sentMessages.stream()
                 .anyMatch(m -> "COMMUNITY".equals(m.getAssociation()));
         boolean hasGrid = sentMessages.stream()
@@ -50,14 +50,14 @@ class UserServiceTest {
         assertThat(hasCommunity).isTrue();
         assertThat(hasGrid).isTrue();
 
-        // Общие проверки для каждого сообщения
+        // Common checks for each message
         for (EnergyMessage msg : sentMessages) {
             assertThat(msg.getType()).isEqualTo("USER");
             assertThat(msg.getDatetime())
                     .isEqualTo(Instant.parse("2025-06-22T08:00:00Z"));
         }
 
-        // Проверяем диапазоны kWh:
+        // Check kWh ranges:
         // - COMMUNITY ≤ 2.0
         // - GRID ≥ 0
         EnergyMessage communityMsg = sentMessages.stream()
@@ -73,26 +73,26 @@ class UserServiceTest {
 
         assertThat(gridMsg.getKwh())
                 .isGreaterThanOrEqualTo(0.0)
-                .isLessThan(6.0);  // общее потребление <6 кВт·ч, значит grid <6
+                .isLessThan(6.0);  // total consumption <6 kWh, so grid <6
     }
 
     @Test
     void produceUsage_offPeak_sendsCommunityAndZeroGrid() {
-        // Перенастраиваем время на непиковое
+        // Reconfigure time to off-peak
         app.setNowSupplier(() -> Instant.parse("2025-06-22T03:15:00Z"));
         app.setTimeSupplier(() -> LocalTime.of(3, 15));
 
         app.produceUsage();
 
-        // Ловим оба вызова
+        // Capture both method calls
         ArgumentCaptor<EnergyMessage> cap = ArgumentCaptor.forClass(EnergyMessage.class);
         verify(rabbit, times(2)).convertAndSend(eq(queueName), cap.capture());
 
         List<EnergyMessage> sentMessages = cap.getAllValues();
-        // Ожидаем ровно два сообщения
+        // Expect exactly two messages
         assertThat(sentMessages).hasSize(2);
 
-        // Находим сообщения по ассоциации
+        // Find messages by association
         EnergyMessage communityMsg = sentMessages.stream()
                 .filter(m -> "COMMUNITY".equals(m.getAssociation()))
                 .findFirst().orElseThrow();
@@ -100,7 +100,7 @@ class UserServiceTest {
                 .filter(m -> "GRID".equals(m.getAssociation()))
                 .findFirst().orElseThrow();
 
-        // Проверяем общее
+        // General checks
         assertThat(communityMsg.getType()).isEqualTo("USER");
         assertThat(gridMsg.getType()).isEqualTo("USER");
         assertThat(communityMsg.getDatetime())
@@ -108,7 +108,7 @@ class UserServiceTest {
         assertThat(gridMsg.getDatetime())
                 .isEqualTo(Instant.parse("2025-06-22T03:15:00Z"));
 
-        // В непиковые часы базовое потребление ∈ [0,2), community = base, а grid = 0
+        // During off-peak hours, base usage ∈ [0,2), community = base, and grid = 0
         assertThat(communityMsg.getKwh())
                 .isGreaterThanOrEqualTo(0.0)
                 .isLessThan(2.0);

@@ -41,7 +41,7 @@ public class ProducerApplication {
 
     @Scheduled(fixedDelayString = "#{T(java.util.concurrent.ThreadLocalRandom).current().nextInt(1000,5000)}")
     public void produce() {
-        // Reduced production to 0–2 kWh to allow grid usage
+        // Reduced energy production to 0–2 kWh to allow for grid consumption when needed
         double kwh = ThreadLocalRandom.current().nextDouble() * 2.0;
         EnergyMessage msg = new EnergyMessage(type, association, kwh, Instant.now());
         rabbit.convertAndSend(queue, msg);
