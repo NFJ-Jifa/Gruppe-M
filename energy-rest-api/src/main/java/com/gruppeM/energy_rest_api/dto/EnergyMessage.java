@@ -3,16 +3,31 @@ package com.gruppeM.energy_rest_api.dto;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.time.Instant;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
+/**
+ * DTO (Data Transfer Object) representing a raw energy message.
+ * This message is sent by a producer and received via RabbitMQ.
+ */
+@JsonIgnoreProperties(ignoreUnknown = true) // allows flexible deserialization
 public class EnergyMessage {
 
-    private String type;
-    private String association;
-    private double kwh;
-    private Instant datetime;
+    private String type;          // Type of energy message (e.g. "PRODUCTION" or "USAGE")
+    private String association;   // Name or ID of the energy community
+    private double kwh;           // Energy value in kilowatt-hours
+    private Instant datetime;     // Timestamp of the event
 
+    /**
+     * Default constructor (required for Jackson deserialization).
+     */
     public EnergyMessage() { }
 
+    /**
+     * Full constructor for manual object creation.
+     *
+     * @param type        type of energy event
+     * @param association name of the energy community
+     * @param kwh         amount of energy
+     * @param datetime    timestamp of the event
+     */
     public EnergyMessage(String type, String association, double kwh, Instant datetime) {
         this.type        = type;
         this.association = association;
@@ -20,6 +35,7 @@ public class EnergyMessage {
         this.datetime    = datetime;
     }
 
+    // Getter and Setter for 'type'
     public String getType() {
         return type;
     }
@@ -27,6 +43,7 @@ public class EnergyMessage {
         this.type = type;
     }
 
+    // Getter and Setter for 'association'
     public String getAssociation() {
         return association;
     }
@@ -34,6 +51,7 @@ public class EnergyMessage {
         this.association = association;
     }
 
+    // Getter and Setter for 'kwh'
     public double getKwh() {
         return kwh;
     }
@@ -41,6 +59,7 @@ public class EnergyMessage {
         this.kwh = kwh;
     }
 
+    // Getter and Setter for 'datetime'
     public Instant getDatetime() {
         return datetime;
     }
@@ -48,6 +67,9 @@ public class EnergyMessage {
         this.datetime = datetime;
     }
 
+    /**
+     * Debug-friendly string representation of this message.
+     */
     @Override
     public String toString() {
         return "EnergyMessage{" +

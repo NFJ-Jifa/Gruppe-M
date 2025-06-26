@@ -3,15 +3,22 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.geometry.Insets?>
 
+<!--
+    Main layout for the JavaFX Energy Dashboard.
+    Uses a BorderPane to organize the UI into top (status and controls),
+    center (historical data table), and bottom (status messages and summaries).
+-->
 <BorderPane xmlns:fx="http://javafx.com/fxml"
             fx:controller="com.gruppem.energygui.Controller">
 
-    <!-- Верхняя панель: текущие показатели + кнопка Refresh -->
+    <!-- Top section: current energy values and controls -->
     <top>
         <VBox spacing="10">
             <padding>
                 <Insets top="10" right="10" bottom="10" left="10"/>
             </padding>
+
+            <!-- Current status display and refresh button -->
             <HBox spacing="20" alignment="CENTER_LEFT">
                 <Label text="Community Pool:"/>
                 <Label fx:id="communityLabel" text="– % used" style="-fx-font-size: 16px;"/>
@@ -20,18 +27,23 @@
                 <Button fx:id="refreshButton" text="Refresh"/>
             </HBox>
 
-            <!-- Секция выбора периода -->
+            <!-- Time range selectors for historical data -->
             <HBox spacing="10" alignment="CENTER_LEFT">
+                <!-- Start timestamp -->
                 <VBox spacing="5">
                     <Label text="Start:"/>
                     <DatePicker fx:id="startDatePicker"/>
                     <TextField fx:id="startTimeField" promptText="HH:mm:ss"/>
                 </VBox>
+
+                <!-- End timestamp -->
                 <VBox spacing="5">
                     <Label text="End:"/>
                     <DatePicker fx:id="endDatePicker"/>
                     <TextField fx:id="endTimeField" promptText="HH:mm:ss"/>
                 </VBox>
+
+                <!-- Button to trigger historical data fetch -->
                 <VBox spacing="5">
                     <Button fx:id="getHistoricalButton" text="Show Data"/>
                 </VBox>
@@ -39,7 +51,7 @@
         </VBox>
     </top>
 
-    <!-- Центр: таблица истории -->
+    <!-- Center section: table view of historical data -->
     <center>
         <TableView fx:id="historyTable" prefHeight="300">
             <columns>
@@ -50,18 +62,19 @@
         </TableView>
     </center>
 
-    <!-- Нижняя панель: статус и суммарные значения -->
+    <!-- Bottom section: status and aggregated kWh summaries -->
     <bottom>
         <VBox spacing="10">
             <padding>
                 <Insets top="10" right="10" bottom="10" left="10"/>
             </padding>
-            <!-- Строка статуса -->
+
+            <!-- Live status display -->
             <HBox spacing="10" alignment="CENTER_LEFT">
                 <Label fx:id="statusLabel" text="Status: Ready"/>
             </HBox>
 
-            <!-- Секция сумм -->
+            <!-- Aggregated energy values over selected time range -->
             <VBox spacing="5" alignment="CENTER_LEFT">
                 <Label fx:id="prodLabel"    text="Community produced 0.000 kWh"/>
                 <Label fx:id="usedLabel"    text="Community used     0.000 kWh"/>

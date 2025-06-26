@@ -2,7 +2,10 @@
 		 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
          http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<!-- Standard Maven metadata -->
 	<modelVersion>4.0.0</modelVersion>
+
+	<!-- This module inherits configuration from the parent project -->
 	<parent>
 		<groupId>com.gruppeM</groupId>
 		<artifactId>energy-communities</artifactId>
@@ -10,8 +13,11 @@
 		<relativePath>../pom.xml</relativePath>
 	</parent>
 
+	<!-- Artifact coordinates -->
 	<artifactId>energy-rest-api</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
+
+	<!-- Project metadata -->
 	<name>energy-rest-api</name>
 	<description>Energy REST API for milestone</description>
 	<url/>
@@ -27,39 +33,52 @@
 		<tag/>
 		<url/>
 	</scm>
+	<!-- Java version to be used -->
 	<properties>
 		<java.version>17</java.version>
 	</properties>
+
 	<dependencies>
 
-
+		<!-- PostgreSQL JDBC driver for database connectivity -->
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
 			<version>42.5.4</version>
 		</dependency>
+
+		<!-- Spring Boot Web Starter: includes REST controller support -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
 
+		<!-- Spring Boot Starter for unit and integration testing -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-        <dependency>
-            <groupId>org.springframework.amqp</groupId>
-            <artifactId>spring-rabbit</artifactId>
-        </dependency>
+
+		<!-- Core Spring AMQP support for working with RabbitMQ -->
+		<dependency>
+			<groupId>org.springframework.amqp</groupId>
+			<artifactId>spring-rabbit</artifactId>
+		</dependency>
+
+		<!-- Spring Boot Starter for AMQP (RabbitMQ) integration -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-amqp</artifactId>
 		</dependency>
+
+		<!-- Jackson support for Java 8 Date/Time (e.g., Instant) -->
 		<dependency>
 			<groupId>com.fasterxml.jackson.datatype</groupId>
 			<artifactId>jackson-datatype-jsr310</artifactId>
 		</dependency>
+
+		<!-- Spring Data JPA for ORM (used with PostgreSQL) -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
@@ -67,8 +86,10 @@
 
 	</dependencies>
 
+
 	<build>
 		<plugins>
+			<!-- Enables 'mvn spring-boot:run' and builds executable JAR -->
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>

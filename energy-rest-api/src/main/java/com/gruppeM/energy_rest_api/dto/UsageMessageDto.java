@@ -5,18 +5,41 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.time.Instant;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
+/**
+ * DTO representing summarized hourly energy usage data.
+ * Typically received from another service via RabbitMQ.
+ */
+@JsonIgnoreProperties(ignoreUnknown = true) // ignore unexpected fields during deserialization
 public class UsageMessageDto {
 
-    // JSON может содержать либо "hourKey", либо (например из другого сервиса) "hour"
+    /**
+     * Timestamp representing the hour this data belongs to.
+     * The JSON input may use either "hourKey" or "hour" as the field name.
+     */
     @JsonAlias({"hourKey", "hour"})
     private Instant hourKey;
 
+    /**
+     * Total amount of energy (in kWh) produced by the community during this hour.
+     */
     private double communityProduced;
+
+    /**
+     * Total amount of energy (in kWh) consumed by the community during this hour.
+     */
     private double communityUsed;
+
+    /**
+     * Total amount of energy (in kWh) drawn from the public grid during this hour.
+     */
     private double gridUsed;
 
+    /**
+     * Default constructor required for deserialization.
+     */
     public UsageMessageDto() {}
+
+    // === Getters and Setters ===
 
     public Instant getHourKey() {
         return hourKey;

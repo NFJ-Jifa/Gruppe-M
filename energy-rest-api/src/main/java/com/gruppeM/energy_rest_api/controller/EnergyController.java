@@ -17,8 +17,13 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * This controller handles all HTTP requests related to energy data.
+ * It acts as the bridge between the frontend (GUI) and the backend logic,
+ * and also allows publishing new messages to the RabbitMQ queue.
+ */
 @RestController
-@RequestMapping("/energy")
+@RequestMapping("/energy") // Base URL for all energy-related endpoints
 public class EnergyController {
 
     private final HourlyUsageRepository hourlyRepo;
@@ -26,6 +31,14 @@ public class EnergyController {
     private final RabbitTemplate rabbit;
     private final String inputQueue;
 
+    /**
+     * Constructor-based dependency injection.
+     *
+     * @param hourlyRepo     Repository for querying historical usage data
+     * @param energyService  Handles business logic like calculating percentages
+     * @param rabbit         Sends messages to RabbitMQ
+     * @param inputQueue     Name of the queue for new raw energy messages
+     */
     public EnergyController(HourlyUsageRepository hourlyRepo,
                             EnergyService energyService,
                             RabbitTemplate rabbit,
@@ -36,20 +49,37 @@ public class EnergyController {
         this.inputQueue    = inputQueue;
     }
 
+    /**
+     * Returns the most recent energy status with calculated percentage values.
+     * GET /energy/current
+     *
+     * @return an EnergyData object representing the current situation
+     */
     @GetMapping("/current")
     public ResponseEntity<EnergyData> getCurrent() {
         EnergyData current = energyService.getCurrentEnergyStatus();
         return ResponseEntity.ok(current);
     }
 
-    /** Публикация сырых сообщений */
+    /**
+     * Publishes a raw energy message (from a producer) to RabbitMQ.
+     * POST /energy/publish
+     *
+     * @param msg the energy message to be forwarded to the message queue
+     * @return HTTP 202 Accepted
+     */
     @PostMapping("/publish")
     public ResponseEntity<Void> publishRaw(@RequestBody EnergyMessage msg) {
         rabbit.convertAndSend(inputQueue, msg);
         return ResponseEntity.accepted().build();
     }
 
-    /** Доступный диапазон */
+    /**
+     * Returns the time span in which energy data is available.
+     * GET /energy/available-range
+     *
+     * @return AvailableRange object (from earliest to latest entry)
+     */
     @GetMapping("/available-range")
     public ResponseEntity<AvailableRange> availableRange() {
         Optional<Instant> minOpt = hourlyRepo.findMinHourKey();
@@ -60,7 +90,14 @@ public class EnergyController {
         return ResponseEntity.ok(new AvailableRange(minOpt.get(), maxOpt.get()));
     }
 
-    /** 2) Исторические данные с raw kWh и % */
+    /**
+     * Returns a list of hourly energy usage values between two timestamps.
+     * GET /energy/historical?start=...&end=...
+     *
+     * @param start Start timestamp (ISO 8601)
+     * @param end   End timestamp (ISO 8601)
+     * @return List of HistoricalUsageDto entries
+     */
     @GetMapping("/historical")
     public ResponseEntity<List<HistoricalUsageDto>> getHistorical(
             @RequestParam("start")
@@ -68,7 +105,7 @@ public class EnergyController {
             @RequestParam("end")
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant end) {
 
-        // Усечём до границ часа
+        // Align timestamps to the start of each hour
         Instant from = start.truncatedTo(ChronoUnit.HOURS);
         Instant to   = end.truncatedTo(ChronoUnit.HOURS);
 

@@ -9,38 +9,55 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
 /**
- * Entity to store hourly aggregated usage data.
+ * JPA Entity for storing hourly aggregated energy usage data.
+ * Each record represents energy stats for one specific hour.
  */
 @Entity
 @Table(name = "hourly_usage")
 public class HourlyUsage {
 
-    /** The hour truncated to start of the hour, stored in column hour_ts */
+    /**
+     * Primary key representing the start of the hour (truncated timestamp).
+     * Stored as column 'hour_ts'.
+     */
     @Id
     @Column(name = "hour_ts", nullable = false, updatable = false)
     private Instant hourKey;
 
-    /** Energy produced by community in this hour */
+    /**
+     * Total energy (in kWh) produced by the community during this hour.
+     */
     @Column(name = "community_produced", nullable = false)
     private double communityProduced = 0;
 
-    /** Energy consumed from community pool */
+    /**
+     * Total energy (in kWh) consumed from the community pool in this hour.
+     */
     @Column(name = "community_used", nullable = false)
     private double communityUsed = 0;
 
-    /** Energy drawn from grid when community pool was depleted */
+    /**
+     * Total energy (in kWh) drawn from the public grid due to community depletion.
+     */
     @Column(name = "grid_used", nullable = false)
     private double gridUsed = 0;
 
-    // Default constructor for JPA
+    /**
+     * Default constructor for JPA (required).
+     */
     public HourlyUsage() {}
 
-    // Create new record for given timestamp (truncated to hour)
+    /**
+     * Constructor that automatically truncates the timestamp to the hour.
+     * Ensures consistent grouping of data per hour.
+     *
+     * @param timestamp Any timestamp within the hour (will be truncated)
+     */
     public HourlyUsage(Instant timestamp) {
         this.hourKey = timestamp.truncatedTo(ChronoUnit.HOURS);
     }
 
-    // Getters and setters
+    // === Getters and Setters ===
 
     public Instant getHourKey() {
         return hourKey;

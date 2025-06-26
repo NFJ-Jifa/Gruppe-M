@@ -7,21 +7,41 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.Instant;
 
+/**
+ * Model class representing the most recent energy statistics.
+ * This data is returned by the /energy/current endpoint.
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class EnergyData {
 
     /**
-     * Поле hour теперь хранит Instant напрямую.
-     * Форматируем его в ISO-строку с суффиксом "Z".
+     * The hour this data applies to, formatted as an ISO-8601 string with "Z" (UTC).
      */
     @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Instant hour;
+
+    /**
+     * Amount of energy (kWh) produced by the community but not used.
+     */
     private double communityDepleted;
+
+    /**
+     * Fraction (or percentage) of total energy consumption coming from the public grid.
+     */
     private double gridPortion;
 
-    // Для Jackson
+    /**
+     * Default constructor required for Jackson and frameworks.
+     */
     public EnergyData() {}
 
+    /**
+     * Constructor annotated with @JsonCreator to control how the JSON is deserialized.
+     *
+     * @param hour               Hour timestamp (parsed from "hour" field in JSON)
+     * @param communityDepleted  Unused community energy
+     * @param gridPortion        Portion of energy from the grid
+     */
     @JsonCreator
     public EnergyData(
             @JsonProperty("hour") Instant hour,
@@ -33,9 +53,12 @@ public class EnergyData {
         this.gridPortion = gridPortion;
     }
 
+    // === Getters and Setters ===
+
     public Instant getHour() {
         return hour;
     }
+
     public void setHour(Instant hour) {
         this.hour = hour;
     }
@@ -43,6 +66,7 @@ public class EnergyData {
     public double getCommunityDepleted() {
         return communityDepleted;
     }
+
     public void setCommunityDepleted(double communityDepleted) {
         this.communityDepleted = communityDepleted;
     }
@@ -50,6 +74,7 @@ public class EnergyData {
     public double getGridPortion() {
         return gridPortion;
     }
+
     public void setGridPortion(double gridPortion) {
         this.gridPortion = gridPortion;
     }

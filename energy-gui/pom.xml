@@ -15,13 +15,12 @@
     </properties>
 
     <dependencies>
+        <!-- JavaFX -->
         <dependency>
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
             <version>20231013</version>
         </dependency>
-
-
 
 
         <!-- TestFX Core -->
@@ -38,7 +37,7 @@
             <version>4.0.16-alpha</version>
             <scope>test</scope>
         </dependency>
-        <!-- OkHttp MockWebServer -->
+        <!-- Http MockWebServer -->
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>mockwebserver</artifactId>
@@ -116,6 +115,7 @@
                     </argLine>
                 </configuration>
             </plugin>
+            <!-- TestFX Workaround -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -124,7 +124,7 @@
                 </configuration>
             </plugin>
 
-            <!-- ваша другая конфигурация плагинов -->
+            <!-- JavaFX Plugin -->
 
             <plugin>
                 <groupId>org.openjfx</groupId>

@@ -38,7 +38,7 @@ public class PercentageProcessor {
 
         PercentageData out = new PercentageData(msg.getHourKey(), communityDepleted, gridPortion);
 
-        log.info("✔ percentage-service публикует PercentageData: hourKey={}, communityDepleted={}, gridPortion={}",
+        log.info("✔ percentage-service publish PercentageData: hourKey={}, communityDepleted={}, gridPortion={}",
                 out.getHourKey(), out.getCommunityDepleted(), out.getGridPortion());
 
         rabbit.convertAndSend(props.getFinalQueue(), out);

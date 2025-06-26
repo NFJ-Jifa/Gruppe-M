@@ -1,34 +1,43 @@
 spring:
   datasource:
+    # Database connection URL for PostgreSQL
     url: jdbc:postgresql://localhost:5432/energydb
+
+    # Database credentials
     username: disysuser
     password: disyspw
+
   jpa:
     hibernate:
+      # Automatically update the database schema based on entity definitions.
+      # Use 'update' for development; avoid in production.
       ddl-auto: update
+
   jackson:
     serialization:
+      # Ensure that Java time objects (e.g., Instant) are serialized as ISO 8601 strings, not timestamps.
       write-dates-as-timestamps: false
+
+    # Use camelCase when converting Java properties to JSON (e.g., 'communityUsed')
     property-naming-strategy: LOWER_CAMEL_CASE
 
   application:
+    # Name of the Spring Boot application (used for logging and monitoring)
     name: energy-rest-api
 
   rabbitmq:
+    # Connection details for RabbitMQ broker
     host: localhost
     port: 5672
     username: guest
     password: guest
 
 energy:
-  input-queue:     energy.input
-  update-queue:     energy.update
-  percentage-queue: energy.percentage
-
-
-
+  # Names of the RabbitMQ queues used in the application
+  input-queue:     energy.input       # For receiving new raw messages
+  update-queue:    energy.update      # For hourly aggregated usage data
+  percentage-queue: energy.percentage # For real-time percentage data
 
 server:
+  # The port on which the REST API server will run
   port: 8080
-
-
